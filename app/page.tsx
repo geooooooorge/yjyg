@@ -128,11 +128,18 @@ export default function Home() {
 
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Mail className="w-6 h-6 text-indigo-600" />
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-                邮件订阅管理
-              </h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Mail className="w-6 h-6 text-indigo-600" />
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
+                  邮件订阅管理
+                </h2>
+              </div>
+              {emails.length > 0 && (
+                <div className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium">
+                  {emails.length} 个订阅
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 mb-4">
@@ -153,21 +160,27 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {emails.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                   暂无订阅邮箱
                 </p>
               ) : (
-                emails.map((email) => (
+                emails.map((email, index) => (
                   <div
                     key={email}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
                   >
-                    <span className="text-gray-700 dark:text-gray-200">{email}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-6">
+                        {index + 1}
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-200">{email}</span>
+                    </div>
                     <button
                       onClick={() => removeEmail(email)}
-                      className="text-red-600 hover:text-red-700 transition-colors"
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
+                      title="删除此邮箱"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -301,6 +314,12 @@ export default function Home() {
 
         <div className="text-center text-gray-600 dark:text-gray-400 text-sm">
           <p>数据来源：东方财富 | 每半小时自动更新</p>
+          <a
+            href="/admin"
+            className="inline-block mt-4 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm"
+          >
+            数据库管理
+          </a>
         </div>
       </div>
     </div>

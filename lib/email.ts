@@ -37,6 +37,14 @@ export async function sendEmail(
   try {
     const config = getEmailConfig();
     
+    console.log('Email config:', {
+      host: config.host,
+      port: config.port,
+      user: config.auth.user,
+      from: config.from,
+      to: to
+    });
+    
     if (!config.auth.user || !config.auth.pass) {
       console.error('Email configuration is missing');
       return false;
@@ -46,9 +54,17 @@ export async function sendEmail(
       host: config.host,
       port: config.port,
       secure: config.secure,
-      auth: config.auth,
+      auth: {
+        user: config.auth.user,
+        pass: config.auth.pass,
+      },
+      // QQ邮箱特殊配置
+      tls: {
+        rejectUnauthorized: false
+      }
     });
 
+    console.log('Sending email...');
     const info = await transporter.sendMail({
       from: config.from,
       to: to.join(', '),
@@ -56,10 +72,13 @@ export async function sendEmail(
       html,
     });
 
-    console.log('Email sent:', info.messageId);
+    console.log('Email sent successfully:', info.messageId);
     return true;
-  } catch (error) {
-    console.error('Failed to send email:', error);
+  } catch (error: any) {
+    console.error('Failed to send email:');
+    console.error('Error name:', error?.name);
+    console.error('Error message:', error?.message);
+    console.error('Full error:', error);
     return false;
   }
 }

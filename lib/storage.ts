@@ -28,7 +28,7 @@ export interface EmailHistory {
 let memoryStore: { [key: string]: any } = {};
 
 // 检查是否在Vercel环境
-const isVercel = process.env.VERCEL === '1' || process.env.KV_REST_API_URL;
+const isVercel = process.env.VERCEL === '1' || (process.env.KV_REST_API_URL && process.env.KV_REST_API_URL !== 'your-kv-rest-api-url');
 
 /**
  * 通用的get方法
@@ -70,6 +70,7 @@ async function setValue(key: string, value: any, expirySeconds?: number): Promis
  */
 export async function getEmailList(): Promise<string[]> {
   const list = await getValue<string[]>(EMAIL_LIST_KEY);
+  console.log('getEmailList:', list);
   return list || [];
 }
 
@@ -78,12 +79,17 @@ export async function getEmailList(): Promise<string[]> {
  */
 export async function addEmail(email: string): Promise<boolean> {
   try {
+    console.log('addEmail called with:', email);
     const list = await getEmailList();
+    console.log('Current email list:', list);
     if (list.includes(email)) {
+      console.log('Email already exists');
       return false; // 已存在
     }
     list.push(email);
+    console.log('Updated email list:', list);
     await setValue(EMAIL_LIST_KEY, list);
+    console.log('Email added successfully');
     return true;
   } catch (error) {
     console.error('Failed to add email:', error);

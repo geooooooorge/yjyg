@@ -3,10 +3,25 @@ import { kv } from '@vercel/kv';
 const EMAIL_LIST_KEY = 'email_list';
 const SENT_STOCKS_KEY = 'sent_stocks';
 const STOCKS_CACHE_KEY = 'stocks_cache';
+const EMAIL_HISTORY_KEY = 'email_history';
 
 export interface EmailSubscriber {
   email: string;
   addedAt: string;
+}
+
+export interface EmailHistory {
+  id: string;
+  sentAt: string;
+  recipients: string[];
+  stockCount: number;
+  stocks: Array<{
+    stockCode: string;
+    stockName: string;
+    quarter: string;
+    forecastType: string;
+    changeRange: string;
+  }>;
 }
 
 // 内存存储（用于本地开发）
@@ -144,4 +159,42 @@ export async function getCachedStocks(): Promise<any[] | null> {
   }
   
   return cached.data;
+}
+
+/**
+ * 添加邮件发送历史
+ */
+export async function addEmailHistory(history: Omit<EmailHistory, 'id'>): Promise<void> {
+  try {
+    const historyList = await getEmailHistory();
+    const newHistory: EmailHistory = {
+      ...history,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    // 只保留最近100条记录
+    historyList.unshift(newHistory);
+    if (historyList.length > 100) {
+      historyList.splice(100);
+    }
+    
+    await setValue(EMAIL_HISTORY_KEY, historyList);
+  } catch (error) {
+    console.error('Failed to add email history:', error);
+  }
+}
+
+/**
+ * 获取邮件发送历史
+ */
+export async function getEmailHistory(): Promise<EmailHistory[]> {
+  const history = await getValue<EmailHistory[]>(EMAIL_HISTORY_KEY);
+  return history || [];
+}
+
+/**
+ * 清空邮件历史
+ */
+export async function clearEmailHistory(): Promise<void> {
+  await setValue(EMAIL_HISTORY_KEY, []);
 }

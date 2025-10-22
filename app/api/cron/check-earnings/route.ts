@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchEarningsReports, getLatestReports, formatEmailContent } from '@/lib/eastmoney';
-import { getEmailList, isStockSent, markStockAsSent } from '@/lib/storage';
+import { getEmailList, isStockSent, markStockAsSent, addEmailHistory } from '@/lib/storage';
 import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -83,6 +83,22 @@ export async function GET(request: NextRequest) {
       for (const [code, stockReports] of newStocks.entries()) {
         await markStockAsSent(code, stockReports[0].quarter);
       }
+
+      // 7. 记录发送历史
+      const stocksArray = Array.from(newStocks.entries()).map(([code, reports]) => ({
+        stockCode: code,
+        stockName: reports[0].stockName,
+        quarter: reports[0].quarter,
+        forecastType: reports[0].forecastType,
+        changeRange: `${reports[0].changeMin}%~${reports[0].changeMax}%`
+      }));
+
+      await addEmailHistory({
+        sentAt: new Date().toISOString(),
+        recipients: emailList,
+        stockCount: newStocks.size,
+        stocks: stocksArray
+      });
 
       return NextResponse.json({ 
         success: true, 

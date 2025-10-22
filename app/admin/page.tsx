@@ -18,9 +18,10 @@ interface Stock {
 export default function AdminPage() {
   const [emails, setEmails] = useState<string[]>([]);
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'emails' | 'stocks'>('emails');
+  const [activeTab, setActiveTab] = useState<'emails' | 'stocks' | 'history'>('emails');
 
   useEffect(() => {
     fetchData();
@@ -29,19 +30,24 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [emailsRes, stocksRes] = await Promise.all([
+      const [emailsRes, stocksRes, historyRes] = await Promise.all([
         fetch('/api/emails'),
-        fetch('/api/earnings')
+        fetch('/api/earnings'),
+        fetch('/api/email-history')
       ]);
 
       const emailsData = await emailsRes.json();
       const stocksData = await stocksRes.json();
+      const historyData = await historyRes.json();
 
       if (emailsData.success) {
         setEmails(emailsData.emails);
       }
       if (stocksData.success) {
         setStocks(stocksData.stocks);
+      }
+      if (historyData.success) {
+        setHistory(historyData.history);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -73,6 +79,26 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000);
   };
 
+  const clearHistory = async () => {
+    if (!confirm('确定要清空所有邮件发送历史吗？此操作不可恢复！')) return;
+
+    try {
+      const res = await fetch('/api/email-history', { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage('历史记录已清空');
+        fetchData();
+      } else {
+        setMessage('清空失败');
+      }
+    } catch (error) {
+      setMessage('清空失败');
+    }
+
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   const exportData = () => {
     const data = {
       emails,
@@ -81,6 +107,7 @@ export default function AdminPage() {
         stockName: s.stockName,
         reports: s.reports
       })),
+      history,
       exportTime: new Date().toISOString()
     };
 
@@ -140,7 +167,7 @@ export default function AdminPage() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -162,6 +189,18 @@ export default function AdminPage() {
                 </p>
               </div>
               <TrendingUp className="w-12 h-12 text-green-600" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">发送历史</p>
+                <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">
+                  {history.length}
+                </p>
+              </div>
+              <Database className="w-12 h-12 text-orange-600" />
             </div>
           </div>
         </div>
@@ -193,6 +232,19 @@ export default function AdminPage() {
               <div className="flex items-center justify-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 股票数据 ({stocks.length})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                activeTab === 'history'
+                  ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-b-2 border-orange-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Database className="w-5 h-5" />
+                发送历史 ({history.length})
               </div>
             </button>
           </div>
@@ -237,7 +289,7 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'stocks' ? (
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
                   预增股票数据
@@ -276,6 +328,67 @@ export default function AdminPage() {
                               </span>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    邮件发送历史
+                  </h3>
+                  {history.length > 0 && (
+                    <button
+                      onClick={clearHistory}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      清空历史
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {history.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+                      暂无发送历史
+                    </p>
+                  ) : (
+                    history.map((record: any) => (
+                      <div
+                        key={record.id}
+                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {new Date(record.sentAt).toLocaleString('zh-CN')}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-indigo-600 dark:text-indigo-400">
+                              {record.recipients.length} 个收件人
+                            </span>
+                            <span className="text-green-600 dark:text-green-400">
+                              {record.stockCount} 只股票
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          {record.stocks.slice(0, 3).map((stock: any, idx: number) => (
+                            <div key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex justify-between">
+                              <span>{stock.stockName} ({stock.stockCode})</span>
+                              <span className="text-green-600 dark:text-green-400">
+                                {stock.forecastType} {stock.changeRange}
+                              </span>
+                            </div>
+                          ))}
+                          {record.stocks.length > 3 && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-1">
+                              还有 {record.stocks.length - 3} 只股票...
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))

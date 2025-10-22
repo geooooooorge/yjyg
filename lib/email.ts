@@ -12,15 +12,19 @@ export interface EmailConfig {
 }
 
 export function getEmailConfig(): EmailConfig {
+  // 优先使用环境变量，如果没有则使用默认值
+  const smtpUser = process.env.SMTP_USER || '';
+  const smtpHost = process.env.SMTP_HOST || 'smtp.qq.com';
+  
   return {
-    host: process.env.SMTP_HOST || 'smtp.163.com',
+    host: smtpHost,
     port: parseInt(process.env.SMTP_PORT || '465'),
     secure: true,
     auth: {
-      user: process.env.SMTP_USER || '15010606939@163.com',
+      user: smtpUser,
       pass: process.env.SMTP_PASS || '',
     },
-    from: process.env.EMAIL_FROM || '业绩预增跟踪器 <15010606939@163.com>',
+    from: process.env.EMAIL_FROM || `业绩预增跟踪器 <${smtpUser}>`,
   };
 }
 

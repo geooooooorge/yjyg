@@ -204,7 +204,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
               {loading ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                   加载中...
@@ -214,31 +214,86 @@ export default function Home() {
                   暂无业绩预增股票
                 </p>
               ) : (
-                stocks.map((stock) => (
-                  <div
-                    key={stock.stockCode}
-                    className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800 dark:text-white">
-                        {stock.stockName}
+                (() => {
+                  // 按季度分组
+                  const groupedByQuarter = stocks.reduce((acc, stock) => {
+                    const quarter = stock.reports[0].quarter;
+                    if (!acc[quarter]) {
+                      acc[quarter] = [];
+                    }
+                    acc[quarter].push(stock);
+                    return acc;
+                  }, {} as Record<string, typeof stocks>);
+
+                  // 按季度排序（从新到旧）
+                  const sortedQuarters = Object.keys(groupedByQuarter).sort((a, b) => 
+                    new Date(b).getTime() - new Date(a).getTime()
+                  );
+
+                  // 格式化季度显示
+                  const formatQuarter = (dateStr: string) => {
+                    // dateStr 格式: 2025-09-30 或 2025-12-31
+                    const parts = dateStr.split('-');
+                    const year = parts[0];
+                    const month = parseInt(parts[1]);
+                    
+                    // 根据月份判断季度
+                    let quarter = 1;
+                    if (month === 3) quarter = 1;      // 一季度：3月31日
+                    else if (month === 6) quarter = 2;  // 二季度：6月30日
+                    else if (month === 9) quarter = 3;  // 三季度：9月30日
+                    else if (month === 12) quarter = 4; // 四季度：12月31日
+                    
+                    return `${year}年${quarter}季度业绩预增`;
+                  };
+
+                  return sortedQuarters.map((quarter) => (
+                    <div key={quarter} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 sticky top-0 bg-white dark:bg-gray-800 py-2 border-b border-gray-200 dark:border-gray-700">
+                        {formatQuarter(quarter)} ({groupedByQuarter[quarter].length}只)
                       </h3>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {stock.stockCode}
-                      </span>
+                      <div className="space-y-2">
+                        {groupedByQuarter[quarter].map((stock) => {
+                          const report = stock.reports[0];
+                          // 构建东方财富公告链接
+                          const announcementUrl = `http://data.eastmoney.com/notices/detail/${stock.stockCode}/.html`;
+                          
+                          return (
+                            <div
+                              key={stock.stockCode}
+                              className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-gray-800 dark:text-white">
+                                    {stock.stockName}
+                                  </span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {stock.stockCode}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                  {report.forecastType} {report.changeMin}%~{report.changeMax}%
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <span>公告日期：{report.reportDate}</span>
+                                <a
+                                  href={announcementUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                                >
+                                  查看公告 →
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="space-y-1 text-sm">
-                      {stock.reports.slice(0, 2).map((report, idx) => (
-                        <div key={idx} className="flex justify-between text-gray-700 dark:text-gray-300">
-                          <span>{report.quarter}</span>
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            {report.forecastType} {report.changeMin}%~{report.changeMax}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                  ));
+                })()
               )}
             </div>
           </div>

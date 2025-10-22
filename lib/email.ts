@@ -13,8 +13,9 @@ export interface EmailConfig {
 
 export function getEmailConfig(): EmailConfig {
   // 优先使用环境变量，如果没有则使用默认值
-  const smtpUser = process.env.SMTP_USER || '';
+  const smtpUser = process.env.SMTP_USER || '1445173369@qq.com';
   const smtpHost = process.env.SMTP_HOST || 'smtp.qq.com';
+  const smtpPass = process.env.SMTP_PASS || 'qbtuooluvcjtfhfh';
   
   return {
     host: smtpHost,
@@ -22,7 +23,7 @@ export function getEmailConfig(): EmailConfig {
     secure: true,
     auth: {
       user: smtpUser,
-      pass: process.env.SMTP_PASS || '',
+      pass: smtpPass,
     },
     from: process.env.EMAIL_FROM || `业绩预增跟踪器 <${smtpUser}>`,
   };

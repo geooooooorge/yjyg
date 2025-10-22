@@ -1,12 +1,12 @@
 const nodemailer = require('nodemailer');
 
-console.log('=== 测试QQ邮箱SMTP连接 ===\n');
+console.log('=== 测试搜狐邮箱SMTP连接 ===\n');
 
-const user = '1445173369@qq.com';
-const pass = 'qbtuooluvcjtfhfh';
+const user = '15010606939@sohu.com';
+const pass = 'EKBO8JUIQRNFY';
 
 const config = {
-  host: 'smtp.qq.com',
+  host: 'smtp.sohu.com',
   port: 465,
   secure: true,
   auth: {
@@ -38,15 +38,15 @@ async function testSMTP() {
 
     console.log('发送测试邮件...');
     const info = await transporter.sendMail({
-      from: '业绩预增跟踪器 <1445173369@qq.com>',
-      to: '1445173369@qq.com',
+      from: '业绩预增跟踪器 <15010606939@sohu.com>',
+      to: '15010606939@sohu.com',
       subject: '测试邮件 - ' + new Date().toLocaleString(),
-      html: '<h1>测试成功！</h1><p>如果你收到这封邮件，说明SMTP配置正确。</p>'
+      html: '<h1>测试成功！</h1><p>如果你收到这封邮件，说明搜狐邮箱SMTP配置正确。</p>'
     });
 
     console.log('✅ 邮件发送成功！');
     console.log('Message ID:', info.messageId);
-    console.log('\n请检查邮箱 1445173369@qq.com 的收件箱（可能在垃圾箱）');
+    console.log('\n请检查邮箱 15010606939@sohu.com 的收件箱（可能在垃圾箱）');
 
   } catch (error) {
     console.error('\n❌ 错误:');

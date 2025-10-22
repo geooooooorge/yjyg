@@ -13,14 +13,14 @@ export interface EmailConfig {
 
 export function getEmailConfig(): EmailConfig {
   return {
-    host: process.env.SMTP_HOST || 'smtp.qq.com',
+    host: process.env.SMTP_HOST || 'smtp.163.com',
     port: parseInt(process.env.SMTP_PORT || '465'),
     secure: true,
     auth: {
-      user: process.env.SMTP_USER || '',
+      user: process.env.SMTP_USER || '15010606939@163.com',
       pass: process.env.SMTP_PASS || '',
     },
-    from: process.env.EMAIL_FROM || '',
+    from: process.env.EMAIL_FROM || '业绩预增跟踪器 <15010606939@163.com>',
   };
 }
 

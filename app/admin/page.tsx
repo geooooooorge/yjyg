@@ -66,22 +66,25 @@ export default function AdminPage() {
   };
 
   const clearAllEmails = async () => {
-    if (!confirm('确定要清空所有邮箱吗？此操作不可恢复！')) return;
+    if (!confirm('确定要清空所有邮箱吗？默认邮箱(15010606939@163.com)会保留！')) return;
 
     try {
-      const deletePromises = emails.map(email =>
-        fetch('/api/emails', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        })
-      );
+      const res = await fetch('/api/emails', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true }),
+      });
 
-      await Promise.all(deletePromises);
-      setMessage('已清空所有邮箱');
-      fetchData();
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage('✅ 已清空所有邮箱（保留默认邮箱）');
+        fetchData();
+      } else {
+        setMessage(`❌ 清空失败: ${data.error}`);
+      }
     } catch (error) {
-      setMessage('清空失败');
+      setMessage('❌ 清空失败');
     }
 
     setTimeout(() => setMessage(''), 3000);

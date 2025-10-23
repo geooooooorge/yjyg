@@ -66,20 +66,28 @@ async function setValue(key: string, value: any, expirySeconds?: number): Promis
 }
 
 /**
- * 获取邮件订阅列表
+ * 获取原始邮件列表（不包含默认邮箱）
+ */
+async function getRawEmailList(): Promise<string[]> {
+  const list = await getValue<string[]>(EMAIL_LIST_KEY);
+  console.log('getRawEmailList:', list);
+  return list || [];
+}
+
+/**
+ * 获取邮件订阅列表（包含默认邮箱）
  */
 export async function getEmailList(): Promise<string[]> {
-  const list = await getValue<string[]>(EMAIL_LIST_KEY);
-  console.log('getEmailList:', list);
+  const list = await getRawEmailList();
   
   // 如果列表为空，返回默认邮箱
-  if (!list || list.length === 0) {
+  if (list.length === 0) {
     return ['15010606939@163.com'];
   }
   
   // 确保默认邮箱始终在列表中
   if (!list.includes('15010606939@163.com')) {
-    list.unshift('15010606939@163.com');
+    return ['15010606939@163.com', ...list];
   }
   
   return list;
@@ -91,8 +99,8 @@ export async function getEmailList(): Promise<string[]> {
 export async function addEmail(email: string): Promise<boolean> {
   try {
     console.log('addEmail called with:', email);
-    const list = await getEmailList();
-    console.log('Current email list:', list);
+    const list = await getRawEmailList();
+    console.log('Current raw email list:', list);
     if (list.includes(email)) {
       console.log('Email already exists');
       return false; // 已存在
@@ -113,15 +121,42 @@ export async function addEmail(email: string): Promise<boolean> {
  */
 export async function removeEmail(email: string): Promise<boolean> {
   try {
-    const list = await getEmailList();
+    console.log('removeEmail called with:', email);
+    
+    // 不允许删除默认邮箱
+    if (email === '15010606939@163.com') {
+      console.log('Cannot remove default email');
+      return false;
+    }
+    
+    const list = await getRawEmailList();
+    console.log('Current raw email list:', list);
     const newList = list.filter(e => e !== email);
     if (newList.length === list.length) {
+      console.log('Email not found');
       return false; // 不存在
     }
+    console.log('Updated email list:', newList);
     await setValue(EMAIL_LIST_KEY, newList);
+    console.log('Email removed successfully');
     return true;
   } catch (error) {
     console.error('Failed to remove email:', error);
+    return false;
+  }
+}
+
+/**
+ * 清空所有邮箱（保留默认邮箱）
+ */
+export async function clearAllEmails(): Promise<boolean> {
+  try {
+    console.log('clearAllEmails called');
+    await setValue(EMAIL_LIST_KEY, []);
+    console.log('All emails cleared (except default)');
+    return true;
+  } catch (error) {
+    console.error('Failed to clear emails:', error);
     return false;
   }
 }

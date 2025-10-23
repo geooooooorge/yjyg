@@ -50,15 +50,22 @@ export async function sendEmail(
       return false;
     }
 
-    // 使用与成功脚本完全相同的配置
+    // 创建 SMTP 传输器 - 参考 smtpmail 项目的配置
     const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
-      secure: config.secure,
+      secure: config.port === 465, // 465 端口使用 SSL,其他端口使用 STARTTLS
       auth: {
         user: config.auth.user,
         pass: config.auth.pass,
       },
+      // 添加调试和超时设置
+      debug: process.env.NODE_ENV === 'development',
+      logger: process.env.NODE_ENV === 'development',
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
+      // TLS 配置
       tls: {
         rejectUnauthorized: false
       }

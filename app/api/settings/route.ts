@@ -16,6 +16,7 @@ interface AppSettings {
 // GET - 获取设置
 export async function GET() {
   try {
+    console.log('Getting settings, isVercel:', isVercel);
     let settings: AppSettings;
     
     if (isVercel) {
@@ -24,6 +25,7 @@ export async function GET() {
       settings = memorySettings;
     }
 
+    console.log('Current settings:', settings);
     return NextResponse.json({
       success: true,
       settings
@@ -41,9 +43,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { notificationFrequency } = await request.json();
+    console.log('Updating settings, received frequency:', notificationFrequency);
 
     // 验证频率（5-1440分钟，即5分钟到24小时）
     if (!notificationFrequency || notificationFrequency < 5 || notificationFrequency > 1440) {
+      console.log('Invalid frequency:', notificationFrequency);
       return NextResponse.json(
         { success: false, error: '通知频率必须在5-1440分钟之间' },
         { status: 400 }
@@ -54,10 +58,13 @@ export async function POST(request: Request) {
       notificationFrequency
     };
 
+    console.log('Saving settings, isVercel:', isVercel);
     if (isVercel) {
       await kv.set(SETTINGS_KEY, settings);
+      console.log('Settings saved to KV');
     } else {
       memorySettings = settings;
+      console.log('Settings saved to memory:', memorySettings);
     }
 
     return NextResponse.json({

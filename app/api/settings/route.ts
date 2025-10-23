@@ -30,10 +30,19 @@ export async function GET() {
       success: true,
       settings
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to get settings:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    });
     return NextResponse.json(
-      { success: false, error: '获取设置失败' },
+      { 
+        success: false, 
+        error: '获取设置失败',
+        details: error?.message || String(error)
+      },
       { status: 500 }
     );
   }
@@ -72,10 +81,19 @@ export async function POST(request: Request) {
       message: '设置已更新',
       settings
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update settings:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name
+    });
     return NextResponse.json(
-      { success: false, error: '更新设置失败' },
+      { 
+        success: false, 
+        error: '更新设置失败',
+        details: error?.message || String(error)
+      },
       { status: 500 }
     );
   }

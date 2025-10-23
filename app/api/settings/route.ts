@@ -33,8 +33,13 @@ export async function GET() {
     let settings: AppSettings;
     
     if (hasKV && kv) {
-      settings = await kv.get<AppSettings>(SETTINGS_KEY) || { notificationFrequency: 30 };
-      console.log('Settings from KV:', settings);
+      try {
+        settings = (await kv.get(SETTINGS_KEY)) as AppSettings || { notificationFrequency: 30 };
+        console.log('Settings from KV:', settings);
+      } catch (kvError) {
+        console.warn('KV get failed, using memory:', kvError);
+        settings = memorySettings;
+      }
     } else {
       settings = memorySettings;
       console.log('Settings from memory:', settings);

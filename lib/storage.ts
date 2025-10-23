@@ -80,17 +80,20 @@ async function getRawEmailList(): Promise<string[]> {
 export async function getEmailList(): Promise<string[]> {
   const list = await getRawEmailList();
   
-  // 如果列表为空，返回默认邮箱
-  if (list.length === 0) {
-    return ['15010606939@163.com'];
-  }
+  // 使用 Set 去重，确保默认邮箱在最前面
+  const uniqueEmails = new Set<string>();
+  uniqueEmails.add('15010606939@163.com'); // 默认邮箱始终在第一位
   
-  // 确保默认邮箱始终在列表中
-  if (!list.includes('15010606939@163.com')) {
-    return ['15010606939@163.com', ...list];
-  }
+  // 添加其他邮箱
+  list.forEach(email => {
+    if (email && email.trim()) {
+      uniqueEmails.add(email.trim());
+    }
+  });
   
-  return list;
+  const result = Array.from(uniqueEmails);
+  console.log('getEmailList result:', result);
+  return result;
 }
 
 /**

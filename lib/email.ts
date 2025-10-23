@@ -37,13 +37,21 @@ export async function sendEmail(
   try {
     const config = getEmailConfig();
     
+    // 去重邮件列表，防止重复发送
+    const uniqueRecipients = Array.from(new Set(to.map(email => email.trim()).filter(email => email)));
+    
     console.log('Email config:', {
       host: config.host,
       port: config.port,
       user: config.auth.user,
       from: config.from,
-      to: to
+      to: uniqueRecipients
     });
+    
+    if (uniqueRecipients.length === 0) {
+      console.error('No valid recipients');
+      return false;
+    }
     
     if (!config.auth.user || !config.auth.pass) {
       console.error('Email configuration is missing');
@@ -76,15 +84,16 @@ export async function sendEmail(
     await transporter.verify();
     console.log('✅ SMTP connection verified!');
 
-    console.log('Sending email...');
+    console.log(`Sending email to ${uniqueRecipients.length} unique recipients...`);
     const info = await transporter.sendMail({
       from: config.from,
-      to: to.join(', '),
+      to: uniqueRecipients.join(', '),
       subject,
       html,
     });
 
     console.log('✅ Email sent successfully:', info.messageId);
+    console.log(`✅ Sent to: ${uniqueRecipients.join(', ')}`);
     return true;
   } catch (error: any) {
     console.error('❌ Failed to send email:');

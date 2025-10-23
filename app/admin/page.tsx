@@ -38,7 +38,7 @@ export default function AdminPage() {
     try {
       const [emailsRes, stocksRes, historyRes, settingsRes] = await Promise.all([
         fetch('/api/emails'),
-        fetch('/api/earnings'),
+        fetch('/api/earnings?type=all'),
         fetch('/api/email-history'),
         fetch('/api/settings')
       ]);

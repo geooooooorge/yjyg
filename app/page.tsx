@@ -44,7 +44,7 @@ export default function Home() {
   const fetchStocks = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/earnings');
+      const res = await fetch('/api/earnings?type=today');
       const data = await res.json();
       if (data.success) {
         setStocks(data.stocks);
@@ -205,7 +205,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-green-600" />
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-                  当前预增股票
+                  今日新增预增股票
                 </h2>
               </div>
               <button
@@ -224,7 +224,7 @@ export default function Home() {
                 </p>
               ) : stocks.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                  暂无业绩预增股票
+                  今日暂无新增业绩预增公告
                 </p>
               ) : (
                 (() => {

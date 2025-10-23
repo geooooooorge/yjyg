@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchEarningsReports, getLatestReports, formatEmailContent } from '@/lib/eastmoney';
-import { getEmailList, isStockSent, markStockAsSent, addEmailHistory, getValue, setValue } from '@/lib/storage';
+import { getEmailList, isStockSent, markStockAsSent, addEmailHistory, getValue, setValue, addTodayNewStocks } from '@/lib/storage';
 import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -94,30 +94,40 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 7. 获取邮件列表
+    // 7. 将新增股票保存到今日列表
+    const newStocksArray = Array.from(newStocks.entries()).map(([code, reports]) => ({
+      stockCode: code,
+      stockName: reports[0].stockName,
+      reports: reports,
+    }));
+    await addTodayNewStocks(newStocksArray);
+    console.log(`Added ${newStocksArray.length} stocks to today's new list`);
+
+    // 8. 获取邮件列表
     const emailList = await getEmailList();
     
     if (emailList.length === 0) {
       console.log('No email subscribers');
       return NextResponse.json({ 
         success: true, 
-        message: 'No email subscribers' 
+        message: 'No email subscribers, but stocks added to today list',
+        stockCount: newStocks.size
       });
     }
 
-    // 8. 发送邮件
+    // 9. 发送邮件（只推送新增的公告内容）
     const emailContent = formatEmailContent(newStocks);
     const subject = `业绩预增提醒：发现 ${newStocks.size} 只股票发布业绩预增公告`;
     
     const sent = await sendEmail(emailList, subject, emailContent);
 
     if (sent) {
-      // 9. 标记为已发送
+      // 10. 标记为已发送
       for (const [code, stockReports] of newStocks.entries()) {
         await markStockAsSent(code, stockReports[0].quarter);
       }
 
-      // 10. 记录发送历史
+      // 11. 记录发送历史
       const stocksArray = Array.from(newStocks.entries()).map(([code, reports]) => ({
         stockCode: code,
         stockName: reports[0].stockName,

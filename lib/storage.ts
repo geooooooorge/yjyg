@@ -4,6 +4,7 @@ const EMAIL_LIST_KEY = 'email_list';
 const SENT_STOCKS_KEY = 'sent_stocks';
 const STOCKS_CACHE_KEY = 'stocks_cache';
 const EMAIL_HISTORY_KEY = 'email_history';
+const DAILY_NEW_STOCKS_KEY = 'daily_new_stocks';
 
 export interface EmailSubscriber {
   email: string;
@@ -264,4 +265,94 @@ export async function getEmailHistory(): Promise<EmailHistory[]> {
  */
 export async function clearEmailHistory(): Promise<void> {
   await setValue(EMAIL_HISTORY_KEY, []);
+}
+
+/**
+ * 获取今天的日期字符串（YYYY-MM-DD格式）
+ */
+function getTodayDateString(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * 缓存每日新增股票数据
+ */
+export async function cacheDailyNewStocks(stocks: any[]): Promise<void> {
+  const today = getTodayDateString();
+  await setValue(`${DAILY_NEW_STOCKS_KEY}:${today}`, {
+    data: stocks,
+    timestamp: Date.now(),
+    date: today
+  });
+}
+
+/**
+ * 获取今日新增的股票数据
+ */
+export async function getTodayNewStocks(): Promise<any[] | null> {
+  const today = getTodayDateString();
+  const cached = await getValue<{ data: any[], timestamp: number, date: string }>(`${DAILY_NEW_STOCKS_KEY}:${today}`);
+  if (!cached) return null;
+  
+  // 检查日期是否匹配
+  if (cached.date !== today) {
+    return null;
+  }
+  
+  return cached.data;
+}
+
+/**
+ * 添加新股票到今日新增列表
+ */
+export async function addTodayNewStock(stock: any): Promise<void> {
+  const today = getTodayDateString();
+  const key = `${DAILY_NEW_STOCKS_KEY}:${today}`;
+  const cached = await getValue<{ data: any[], timestamp: number, date: string }>(key);
+  
+  if (cached) {
+    // 检查是否已存在
+    const exists = cached.data.some(s => s.stockCode === stock.stockCode);
+    if (!exists) {
+      cached.data.push(stock);
+      await setValue(key, cached);
+    }
+  } else {
+    // 创建新的今日列表
+    await setValue(key, {
+      data: [stock],
+      timestamp: Date.now(),
+      date: today
+    });
+  }
+}
+
+/**
+ * 批量添加新股票到今日新增列表
+ */
+export async function addTodayNewStocks(stocks: any[]): Promise<void> {
+  const today = getTodayDateString();
+  const key = `${DAILY_NEW_STOCKS_KEY}:${today}`;
+  const cached = await getValue<{ data: any[], timestamp: number, date: string }>(key);
+  
+  if (cached) {
+    // 合并新股票，去重
+    const existingCodes = new Set(cached.data.map(s => s.stockCode));
+    const newStocks = stocks.filter(s => !existingCodes.has(s.stockCode));
+    if (newStocks.length > 0) {
+      cached.data.push(...newStocks);
+      await setValue(key, cached);
+    }
+  } else {
+    // 创建新的今日列表
+    await setValue(key, {
+      data: stocks,
+      timestamp: Date.now(),
+      date: today
+    });
+  }
 }

@@ -1,10 +1,37 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fetchEarningsReports, getLatestReports } from '@/lib/eastmoney';
-import { getCachedStocks, cacheStocks } from '@/lib/storage';
+import { getCachedStocks, cacheStocks, getTodayNewStocks } from '@/lib/storage';
 
-// GET - 获取最新业绩预增数据
-export async function GET() {
+// GET - 获取业绩预增数据
+// 查询参数: type=today (今日新增) 或 type=all (全部，默认)
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const type = searchParams.get('type') || 'all';
+
+    // 如果请求今日新增
+    if (type === 'today') {
+      const todayStocks = await getTodayNewStocks();
+      if (todayStocks) {
+        console.log('Returning today new stocks:', todayStocks.length);
+        return NextResponse.json({ 
+          success: true, 
+          count: todayStocks.length,
+          stocks: todayStocks,
+          type: 'today'
+        });
+      } else {
+        // 今日暂无新增
+        return NextResponse.json({ 
+          success: true, 
+          count: 0,
+          stocks: [],
+          type: 'today'
+        });
+      }
+    }
+
+    // 请求全部数据
     // 先尝试从缓存获取
     const cached = await getCachedStocks();
     if (cached) {
@@ -13,7 +40,8 @@ export async function GET() {
         success: true, 
         count: cached.length,
         stocks: cached,
-        cached: true
+        cached: true,
+        type: 'all'
       });
     }
 
@@ -35,7 +63,8 @@ export async function GET() {
       success: true, 
       count: result.length,
       stocks: result,
-      cached: false
+      cached: false,
+      type: 'all'
     });
   } catch (error) {
     console.error('Error fetching earnings:', error);

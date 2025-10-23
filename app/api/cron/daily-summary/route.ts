@@ -54,7 +54,7 @@ function formatDailySummaryEmail(stocks: any[]): string {
   };
 
   let stocksHtml = '';
-  stocks.forEach(stock => {
+  stocks.forEach((stock: any) => {
     const report = stock.reports[0];
     const announcementUrl = `http://data.eastmoney.com/notices/detail/${stock.stockCode}/.html`;
     

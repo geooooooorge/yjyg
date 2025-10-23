@@ -18,68 +18,60 @@ export async function GET() {
       });
     }
 
-    // 2. 准备测试邮件内容
-    const subject = '业绩预增跟踪器 - 测试邮件';
+    // 2. 准备测试邮件内容（使用与即时通知相同的格式）
+    const subject = '✅ 测试邮件 - 业绩预增跟踪系统';
     const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-          h1 { margin: 0; font-size: 24px; }
-          h2 { color: #667eea; margin-top: 0; }
-          ul { padding-left: 20px; }
-          li { margin: 10px 0; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>📧 测试邮件</h1>
-            <p>业绩预增跟踪器</p>
-          </div>
-          <div class="content">
-            <div class="success">
-              <strong>✅ 邮件系统正常运行！</strong>
-            </div>
-            
-            <h2>系统信息</h2>
-            <ul>
-              <li><strong>发件人：</strong>15010606939@sohu.com</li>
-              <li><strong>发送时间：</strong>${new Date().toLocaleString('zh-CN')}</li>
-              <li><strong>订阅人数：</strong>${emailList.length} 人</li>
-            </ul>
-
-            <div class="info">
-              <h3>📊 功能说明</h3>
-              <p>本系统会自动监控A股业绩预增公告，每30分钟检查一次，发现新的业绩预增股票时会自动发送邮件通知。</p>
-            </div>
-
-            <h2>监控范围</h2>
-            <ul>
-              <li>业绩预增公告</li>
-              <li>预增幅度 > 30%</li>
-              <li>自动去重，避免重复通知</li>
-            </ul>
-
-            <h2>下一步</h2>
-            <p>如果您收到这封测试邮件，说明邮件系统配置成功！系统将在发现新的业绩预增股票时自动通知您。</p>
-
-            <div class="footer">
-              <p>这是一封自动发送的测试邮件</p>
-              <p>业绩预增跟踪器 © 2025</p>
-            </div>
+      <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0; font-size: 24px;">✅ 测试邮件</h2>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">邮件系统运行正常</p>
+        </div>
+        
+        <div style="background-color: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin: 20px 0;">
+          <p style="color: #155724; margin: 0; font-size: 15px;">
+            🎉 <strong>恭喜！邮件系统配置成功</strong>
+          </p>
+        </div>
+        
+        <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; margin-bottom: 12px; border-radius: 6px;">
+          <h3 style="color: #1f2937; margin: 0 0 12px 0; font-size: 16px;">📊 系统信息</h3>
+          <div style="color: #6b7280; font-size: 13px; line-height: 1.8;">
+            <p style="margin: 5px 0;">📧 发件人：15010606939@sohu.com</p>
+            <p style="margin: 5px 0;">⏰ 发送时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+            <p style="margin: 5px 0;">👥 订阅人数：${emailList.length} 人</p>
           </div>
         </div>
-      </body>
-      </html>
+
+        <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 12px; border-radius: 6px;">
+          <h3 style="color: #1f2937; margin: 0 0 12px 0; font-size: 16px;">⚡ 即时通知</h3>
+          <div style="color: #6b7280; font-size: 13px; line-height: 1.8;">
+            <p style="margin: 5px 0;">• 每5分钟自动检查新公告</p>
+            <p style="margin: 5px 0;">• 发现新增立即推送邮件</p>
+            <p style="margin: 5px 0;">• 自动去重，避免重复通知</p>
+          </div>
+        </div>
+
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin-bottom: 12px; border-radius: 6px;">
+          <h3 style="color: #1f2937; margin: 0 0 12px 0; font-size: 16px;">📅 每日汇总</h3>
+          <div style="color: #6b7280; font-size: 13px; line-height: 1.8;">
+            <p style="margin: 5px 0;">• 每天早上08:00定时推送</p>
+            <p style="margin: 5px 0;">• 汇总过去24小时所有公告</p>
+            <p style="margin: 5px 0;">• 无新增也会发送提醒</p>
+          </div>
+        </div>
+
+        <div style="background-color: #f3f4f6; padding: 16px; border-radius: 6px; margin: 20px 0;">
+          <p style="color: #4b5563; font-size: 14px; margin: 0; line-height: 1.6;">
+            💡 <strong>提示：</strong>如果您收到这封测试邮件，说明邮件系统已正常工作！系统将在发现新的业绩预增股票时自动通知您。
+          </p>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #9ca3af; font-size: 12px; text-align: center;">
+          <p style="margin: 5px 0;">📊 数据来源：东方财富</p>
+          <p style="margin: 5px 0;">⏰ 测试时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+          <p style="margin: 5px 0; color: #d1d5db;">此邮件由业绩预增跟踪系统自动发送</p>
+        </div>
+      </div>
     `;
 
     // 3. 发送邮件

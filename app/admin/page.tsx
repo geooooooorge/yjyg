@@ -29,6 +29,10 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    console.log('notificationFrequency changed to:', notificationFrequency);
+  }, [notificationFrequency]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -148,6 +152,7 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
+      console.log('Saving settings, tempFrequency:', tempFrequency);
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,18 +160,21 @@ export default function AdminPage() {
       });
 
       const data = await res.json();
+      console.log('Save settings response:', data);
       
       if (data.success) {
+        console.log('Setting notificationFrequency to:', tempFrequency);
         setNotificationFrequency(tempFrequency);
-        setMessage('✅ 设置已保存');
+        setMessage(`✅ 设置已保存：每 ${tempFrequency} 分钟检查一次`);
       } else {
         setMessage(`❌ 保存失败: ${data.error}`);
       }
     } catch (error) {
+      console.error('Save settings error:', error);
       setMessage('❌ 保存失败，请检查网络连接');
     } finally {
       setLoading(false);
-      setTimeout(() => setMessage(''), 3000);
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 

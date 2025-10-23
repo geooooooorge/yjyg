@@ -189,40 +189,71 @@ export async function getStockPriceChange(stockCode: string, reportDate: string)
 }
 
 /**
- * 格式化邮件内容
+ * 格式化即时通知邮件内容
  */
 export function formatEmailContent(stocks: Map<string, EarningsReport[]>): string {
-  let content = '<h2>最新业绩预增股票报告</h2>\n';
-  content += `<p>共 ${stocks.size} 只股票发布业绩预增公告</p>\n`;
-  content += '<hr>\n';
+  // 格式化季度显示
+  const formatQuarter = (dateStr: string) => {
+    const parts = dateStr.split('-');
+    const year = parts[0];
+    const month = parseInt(parts[1]);
+    
+    let quarter = 1;
+    if (month === 3) quarter = 1;
+    else if (month === 6) quarter = 2;
+    else if (month === 9) quarter = 3;
+    else if (month === 12) quarter = 4;
+    
+    return `${year}年Q${quarter}`;
+  };
 
+  let stocksHtml = '';
   stocks.forEach((reports, stockCode) => {
-    const report = reports[0]; // 只有一条记录
-    const changeRange = report.changeMin === report.changeMax 
-      ? `${report.changeMin}%`
-      : `${report.changeMin}% ~ ${report.changeMax}%`;
-
-    content += `<h3>${report.stockName} (${stockCode})</h3>\n`;
-    content += '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">\n';
-    content += '<tr style="background-color: #f0f0f0;">\n';
-    content += '<th>报告期</th><th>预告类型</th><th>变动幅度</th><th>公告日期</th>\n';
-    content += '</tr>\n';
-    content += '<tr>\n';
-    content += `<td>${report.quarter}</td>\n`;
-    content += `<td>${report.forecastType}</td>\n`;
-    content += `<td style="color: #16a34a; font-weight: bold;">${changeRange}</td>\n`;
-    content += `<td>${report.reportDate}</td>\n`;
-    content += '</tr>\n';
-    content += '</table>\n';
+    const report = reports[0];
+    const announcementUrl = `http://data.eastmoney.com/notices/detail/${stockCode}/.html`;
     
-    if (report.content) {
-      content += `<p><strong>预告摘要：</strong>${report.content.substring(0, 200)}${report.content.length > 200 ? '...' : ''}</p>\n`;
-    }
-    
-    content += '<hr>\n';
+    stocksHtml += `
+      <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; margin-bottom: 12px; border-radius: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div>
+            <strong style="color: #1f2937; font-size: 18px;">${report.stockName}</strong>
+            <span style="color: #6b7280; font-size: 14px; margin-left: 10px;">${stockCode}</span>
+          </div>
+          <span style="color: #10b981; font-weight: bold; font-size: 16px;">
+            ${report.forecastType} ${report.changeMin}%~${report.changeMax}%
+          </span>
+        </div>
+        <div style="color: #6b7280; font-size: 13px; margin-bottom: 8px;">
+          <span>📅 报告期：${formatQuarter(report.quarter)}</span>
+          <span style="margin-left: 20px;">📢 公告日期：${report.reportDate}</span>
+        </div>
+        <div style="margin-top: 10px;">
+          <a href="${announcementUrl}" style="color: #4f46e5; text-decoration: none; font-size: 13px;">📄 查看完整公告 →</a>
+        </div>
+      </div>
+    `;
   });
 
-  content += `<p style="color: #666; font-size: 12px;">数据来源：东方财富 | 生成时间：${new Date().toLocaleString('zh-CN')}</p>\n`;
-
-  return content;
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h2 style="color: #ffffff; margin: 0; font-size: 24px;">⚡ 业绩预增即时提醒</h2>
+        <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">发现新增公告，立即推送</p>
+      </div>
+      
+      <div style="background-color: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+        <p style="color: #92400e; margin: 0; font-size: 15px;">
+          🔔 <strong>共发现 ${stocks.size} 只股票发布业绩预增公告</strong>
+        </p>
+      </div>
+      
+      ${stocksHtml}
+      
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #9ca3af; font-size: 12px; text-align: center;">
+        <p style="margin: 5px 0;">📊 数据来源：东方财富</p>
+        <p style="margin: 5px 0;">⏰ 推送时间：${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>
+        <p style="margin: 5px 0; color: #d1d5db;">此邮件由业绩预增跟踪系统自动发送</p>
+      </div>
+    </div>
+  `;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Database, Mail, TrendingUp, Trash2, RefreshCw, Download } from 'lucide-react';
+import { Database, Mail, TrendingUp, Trash2, RefreshCw, Download, Settings, Clock, History } from 'lucide-react';
 
 interface Stock {
   stockCode: string;
@@ -21,7 +21,9 @@ export default function AdminPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'emails' | 'stocks' | 'history'>('emails');
+  const [activeTab, setActiveTab] = useState<'emails' | 'stocks' | 'history' | 'settings'>('emails');
+  const [notificationFrequency, setNotificationFrequency] = useState(30);
+  const [tempFrequency, setTempFrequency] = useState(30);
 
   useEffect(() => {
     fetchData();
@@ -30,15 +32,17 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [emailsRes, stocksRes, historyRes] = await Promise.all([
+      const [emailsRes, stocksRes, historyRes, settingsRes] = await Promise.all([
         fetch('/api/emails'),
         fetch('/api/earnings'),
-        fetch('/api/email-history')
+        fetch('/api/email-history'),
+        fetch('/api/settings')
       ]);
 
       const emailsData = await emailsRes.json();
       const stocksData = await stocksRes.json();
       const historyData = await historyRes.json();
+      const settingsData = await settingsRes.json();
 
       if (emailsData.success) {
         setEmails(emailsData.emails);
@@ -48,6 +52,10 @@ export default function AdminPage() {
       }
       if (historyData.success) {
         setHistory(historyData.history);
+      }
+      if (settingsData.success) {
+        setNotificationFrequency(settingsData.settings.notificationFrequency);
+        setTempFrequency(settingsData.settings.notificationFrequency);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -128,6 +136,37 @@ export default function AdminPage() {
     }
   };
 
+  const saveSettings = async () => {
+    if (tempFrequency < 5 || tempFrequency > 1440) {
+      setMessage('❌ 通知频率必须在5-1440分钟之间');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationFrequency: tempFrequency })
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        setNotificationFrequency(tempFrequency);
+        setMessage('✅ 设置已保存');
+      } else {
+        setMessage(`❌ 保存失败: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('❌ 保存失败，请检查网络连接');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   const exportData = () => {
     const data = {
       emails,
@@ -137,6 +176,9 @@ export default function AdminPage() {
         reports: s.reports
       })),
       history,
+      settings: {
+        notificationFrequency
+      },
       exportTime: new Date().toISOString()
     };
 
@@ -281,8 +323,21 @@ export default function AdminPage() {
               }`}
             >
               <div className="flex items-center justify-center gap-2">
-                <Database className="w-5 h-5" />
+                <History className="w-5 h-5" />
                 发送历史 ({history.length})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
+                activeTab === 'settings'
+                  ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Settings className="w-5 h-5" />
+                系统设置
               </div>
             </button>
           </div>
@@ -372,7 +427,7 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'history' ? (
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -431,6 +486,100 @@ export default function AdminPage() {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-6">
+                  系统设置
+                </h3>
+
+                {/* 通知频率设置 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    <h4 className="text-md font-semibold text-gray-800 dark:text-white">
+                      邮件通知频率
+                    </h4>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    设置系统检查业绩预增数据并发送邮件通知的频率
+                  </p>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        检查频率（分钟）
+                      </label>
+                      <input
+                        type="number"
+                        min="5"
+                        max="1440"
+                        value={tempFrequency}
+                        onChange={(e) => setTempFrequency(parseInt(e.target.value) || 30)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        范围：5-1440分钟（5分钟到24小时）
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0 pt-6">
+                      <button
+                        onClick={saveSettings}
+                        disabled={loading || tempFrequency === notificationFrequency}
+                        className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        保存设置
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <strong>当前设置：</strong>每 {notificationFrequency} 分钟检查一次
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      💡 建议设置：30-60分钟，既能及时获取信息，又不会频繁打扰
+                    </p>
+                  </div>
+                </div>
+
+                {/* 常用频率快捷按钮 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                  <h4 className="text-md font-semibold text-gray-800 dark:text-white mb-4">
+                    快捷设置
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { label: '5分钟', value: 5, desc: '实时监控' },
+                      { label: '15分钟', value: 15, desc: '频繁检查' },
+                      { label: '30分钟', value: 30, desc: '推荐' },
+                      { label: '1小时', value: 60, desc: '标准' },
+                      { label: '2小时', value: 120, desc: '适中' },
+                      { label: '6小时', value: 360, desc: '低频' },
+                      { label: '12小时', value: 720, desc: '每日两次' },
+                      { label: '24小时', value: 1440, desc: '每日一次' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.value}
+                        onClick={() => setTempFrequency(preset.value)}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          tempFrequency === preset.value
+                            ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/30'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-purple-400'
+                        }`}
+                      >
+                        <div className="text-sm font-semibold text-gray-800 dark:text-white">
+                          {preset.label}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {preset.desc}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

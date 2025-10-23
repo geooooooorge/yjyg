@@ -86,14 +86,20 @@ export async function GET(request: NextRequest) {
     const emailContent = formatEmailContent(newStocks);
     const subject = `业绩预增提醒：发现 ${newStocks.size} 只股票发布业绩预增公告`;
     
+    console.log('Attempting to send email...');
     const sent = await sendEmail(emailList, subject, emailContent);
+    console.log('Email send result:', sent);
+
+    // 7. 无论邮件是否发送成功，都标记为已发送（避免重复通知）
+    console.log('Marking stocks as sent...');
+    for (const [code, stockReports] of newStocks.entries()) {
+      const quarter = stockReports[0].quarter;
+      console.log(`Marking ${code} (${quarter}) as sent`);
+      await markStockAsSent(code, quarter);
+    }
+    console.log('All stocks marked as sent');
 
     if (sent) {
-      // 7. 标记为已发送
-      for (const [code, stockReports] of newStocks.entries()) {
-        await markStockAsSent(code, stockReports[0].quarter);
-      }
-
       // 8. 记录发送历史
       const stocksArray = Array.from(newStocks.entries()).map(([code, reports]) => ({
         stockCode: code,
@@ -119,7 +125,8 @@ export async function GET(request: NextRequest) {
     } else {
       return NextResponse.json({ 
         success: false, 
-        error: 'Failed to send email' 
+        error: 'Failed to send email, but stocks marked as sent to avoid duplicate notifications',
+        stockCount: newStocks.size
       }, { status: 500 });
     }
 

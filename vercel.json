@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/check-earnings",
-      "schedule": "*/30 * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }

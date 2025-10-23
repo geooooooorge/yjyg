@@ -44,10 +44,20 @@ export default function Home() {
   const fetchStocks = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/earnings?type=today');
-      const data = await res.json();
-      if (data.success) {
-        setStocks(data.stocks);
+      // 先尝试获取今日新增
+      const todayRes = await fetch('/api/earnings?type=today');
+      const todayData = await todayRes.json();
+      
+      if (todayData.success && todayData.stocks && todayData.stocks.length > 0) {
+        // 如果有今日新增，显示今日新增
+        setStocks(todayData.stocks);
+      } else {
+        // 如果今日没有新增，显示所有最新数据
+        const allRes = await fetch('/api/earnings?type=all');
+        const allData = await allRes.json();
+        if (allData.success) {
+          setStocks(allData.stocks);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch stocks:', error);

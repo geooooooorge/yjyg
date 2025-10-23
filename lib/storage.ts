@@ -71,7 +71,18 @@ async function setValue(key: string, value: any, expirySeconds?: number): Promis
 export async function getEmailList(): Promise<string[]> {
   const list = await getValue<string[]>(EMAIL_LIST_KEY);
   console.log('getEmailList:', list);
-  return list || [];
+  
+  // 如果列表为空，返回默认邮箱
+  if (!list || list.length === 0) {
+    return ['15010606939@163.com'];
+  }
+  
+  // 确保默认邮箱始终在列表中
+  if (!list.includes('15010606939@163.com')) {
+    list.unshift('15010606939@163.com');
+  }
+  
+  return list;
 }
 
 /**

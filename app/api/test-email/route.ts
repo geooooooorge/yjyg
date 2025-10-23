@@ -52,7 +52,7 @@ export async function GET() {
             
             <h2>系统信息</h2>
             <ul>
-              <li><strong>发件人：</strong>1445173369@qq.com</li>
+              <li><strong>发件人：</strong>15010606939@sohu.com</li>
               <li><strong>发送时间：</strong>${new Date().toLocaleString('zh-CN')}</li>
               <li><strong>订阅人数：</strong>${emailList.length} 人</li>
             </ul>

@@ -33,7 +33,7 @@ const isVercel = process.env.VERCEL === '1' || (process.env.KV_REST_API_URL && p
 /**
  * 通用的get方法
  */
-async function getValue<T>(key: string): Promise<T | null> {
+export async function getValue<T>(key: string): Promise<T | null> {
   try {
     if (isVercel) {
       return await kv.get<T>(key);
@@ -49,7 +49,7 @@ async function getValue<T>(key: string): Promise<T | null> {
 /**
  * 通用的set方法
  */
-async function setValue(key: string, value: any, expirySeconds?: number): Promise<void> {
+export async function setValue(key: string, value: any, expirySeconds?: number): Promise<void> {
   try {
     if (isVercel) {
       if (expirySeconds) {

@@ -58,8 +58,11 @@ export default function AdminPage() {
         setHistory(historyData.history);
       }
       if (settingsData.success) {
+        console.log('Fetched settings:', settingsData.settings);
+        console.log('Setting notificationFrequency to:', settingsData.settings.notificationFrequency);
         setNotificationFrequency(settingsData.settings.notificationFrequency);
         setTempFrequency(settingsData.settings.notificationFrequency);
+        console.log('State updated');
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -547,12 +550,15 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg" key={notificationFrequency}>
                     <p className="text-sm text-blue-800 dark:text-blue-300">
                       <strong>当前设置：</strong>每 {notificationFrequency} 分钟检查一次
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                       💡 建议设置：30-60分钟，既能及时获取信息，又不会频繁打扰
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      (调试: notificationFrequency = {notificationFrequency}, tempFrequency = {tempFrequency})
                     </p>
                   </div>
                 </div>

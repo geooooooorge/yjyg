@@ -95,7 +95,8 @@ export async function getEmailList(): Promise<string[]> {
   
   // 使用 Set 去重，确保默认邮箱在最前面
   const uniqueEmails = new Set<string>();
-  uniqueEmails.add('15010606939@163.com'); // 默认邮箱始终在第一位
+  uniqueEmails.add('15010606939@163.com'); // 默认邮箱1
+  uniqueEmails.add('caijing666@hotmail.com'); // 默认邮箱2
   
   // 添加其他邮箱
   list.forEach(email => {
@@ -140,7 +141,7 @@ export async function removeEmail(email: string): Promise<boolean> {
     console.log('removeEmail called with:', email);
     
     // 不允许删除默认邮箱
-    if (email === '15010606939@163.com') {
+    if (email === '15010606939@163.com' || email === 'caijing666@hotmail.com') {
       console.log('Cannot remove default email');
       return false;
     }

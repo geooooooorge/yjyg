@@ -73,7 +73,7 @@ export default function AdminPage() {
   };
 
   const clearAllEmails = async () => {
-    if (!confirm('确定要清空所有邮箱吗？默认邮箱(15010606939@163.com)会保留！')) return;
+    if (!confirm('确定要清空所有邮箱吗？默认邮箱(15010606939@163.com 和 caijing666@hotmail.com)会保留！')) return;
 
     try {
       const res = await fetch('/api/emails', {

@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 
 const EMAIL_LIST_KEY = 'email_list';
 const SENT_STOCKS_KEY = 'sent_stocks';
@@ -27,16 +27,28 @@ export interface EmailHistory {
 // 内存存储（用于本地开发）
 let memoryStore: { [key: string]: any } = {};
 
-// 检查是否在Vercel环境
-const isVercel = process.env.VERCEL === '1' || (process.env.KV_REST_API_URL && process.env.KV_REST_API_URL !== 'your-kv-rest-api-url');
+// 检查 Upstash Redis 是否可用
+const hasRedis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
+
+// 初始化 Redis 客户端
+let redis: Redis | null = null;
+if (hasRedis) {
+  try {
+    redis = Redis.fromEnv();
+    console.log('✅ Upstash Redis initialized');
+  } catch (error) {
+    console.warn('⚠️ Upstash Redis initialization failed, using memory storage:', error);
+  }
+}
 
 /**
  * 通用的get方法
  */
 export async function getValue<T>(key: string): Promise<T | null> {
   try {
-    if (isVercel) {
-      return await kv.get<T>(key);
+    if (hasRedis && redis) {
+      const value = await redis.get<T>(key);
+      return value;
     } else {
       return memoryStore[key] || null;
     }
@@ -51,11 +63,11 @@ export async function getValue<T>(key: string): Promise<T | null> {
  */
 export async function setValue(key: string, value: any, expirySeconds?: number): Promise<void> {
   try {
-    if (isVercel) {
+    if (hasRedis && redis) {
       if (expirySeconds) {
-        await kv.set(key, value, { ex: expirySeconds });
+        await redis.set(key, value, { ex: expirySeconds });
       } else {
-        await kv.set(key, value);
+        await redis.set(key, value);
       }
     } else {
       memoryStore[key] = value;

@@ -1,24 +1,24 @@
 import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
 
 const SETTINGS_KEY = 'app_settings';
 
-// 检查 Vercel KV 是否可用
-const hasKV = process.env.KV_REST_API_URL && 
-              process.env.KV_REST_API_TOKEN && 
-              process.env.KV_REST_API_URL !== 'your-kv-rest-api-url';
+// 检查 Upstash Redis 是否可用
+const hasRedis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// 内存存储（用于本地开发或 KV 不可用时）
+// 内存存储（用于本地开发或 Redis 不可用时）
 let memorySettings: any = {
   notificationFrequency: 30, // 默认30分钟
 };
 
-// 动态导入 KV（仅在可用时）
-let kv: any = null;
-if (hasKV) {
+// 初始化 Redis 客户端
+let redis: Redis | null = null;
+if (hasRedis) {
   try {
-    kv = require('@vercel/kv').kv;
+    redis = Redis.fromEnv();
+    console.log('✅ Settings API: Upstash Redis initialized');
   } catch (error) {
-    console.warn('Vercel KV not available, using memory storage');
+    console.warn('⚠️ Settings API: Redis initialization failed, using memory storage:', error);
   }
 }
 
@@ -29,15 +29,16 @@ interface AppSettings {
 // GET - 获取设置
 export async function GET() {
   try {
-    console.log('Getting settings, hasKV:', hasKV);
+    console.log('Getting settings, hasRedis:', hasRedis);
     let settings: AppSettings;
     
-    if (hasKV && kv) {
+    if (hasRedis && redis) {
       try {
-        settings = (await kv.get(SETTINGS_KEY)) as AppSettings || { notificationFrequency: 30 };
-        console.log('Settings from KV:', settings);
-      } catch (kvError) {
-        console.warn('KV get failed, using memory:', kvError);
+        const data = await redis.get<AppSettings>(SETTINGS_KEY);
+        settings = data || { notificationFrequency: 30 };
+        console.log('Settings from Redis:', settings);
+      } catch (redisError) {
+        console.warn('Redis get failed, using memory:', redisError);
         settings = memorySettings;
       }
     } else {
@@ -87,10 +88,10 @@ export async function POST(request: Request) {
       notificationFrequency
     };
 
-    console.log('Saving settings, hasKV:', hasKV);
-    if (hasKV && kv) {
-      await kv.set(SETTINGS_KEY, settings);
-      console.log('Settings saved to KV');
+    console.log('Saving settings, hasRedis:', hasRedis);
+    if (hasRedis && redis) {
+      await redis.set(SETTINGS_KEY, settings);
+      console.log('Settings saved to Redis');
     } else {
       memorySettings = settings;
       console.log('Settings saved to memory:', memorySettings);

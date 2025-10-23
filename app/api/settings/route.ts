@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 
 const SETTINGS_KEY = 'app_settings';
-const isVercel = process.env.VERCEL === '1' || (process.env.KV_REST_API_URL && process.env.KV_REST_API_URL !== 'your-kv-rest-api-url');
 
-// 内存存储（用于本地开发）
+// 检查 Vercel KV 是否可用
+const hasKV = process.env.KV_REST_API_URL && 
+              process.env.KV_REST_API_TOKEN && 
+              process.env.KV_REST_API_URL !== 'your-kv-rest-api-url';
+
+// 内存存储（用于本地开发或 KV 不可用时）
 let memorySettings: any = {
   notificationFrequency: 30, // 默认30分钟
 };
+
+// 动态导入 KV（仅在可用时）
+let kv: any = null;
+if (hasKV) {
+  try {
+    kv = require('@vercel/kv').kv;
+  } catch (error) {
+    console.warn('Vercel KV not available, using memory storage');
+  }
+}
 
 interface AppSettings {
   notificationFrequency: number; // 通知频率（分钟）
@@ -16,13 +29,15 @@ interface AppSettings {
 // GET - 获取设置
 export async function GET() {
   try {
-    console.log('Getting settings, isVercel:', isVercel);
+    console.log('Getting settings, hasKV:', hasKV);
     let settings: AppSettings;
     
-    if (isVercel) {
+    if (hasKV && kv) {
       settings = await kv.get<AppSettings>(SETTINGS_KEY) || { notificationFrequency: 30 };
+      console.log('Settings from KV:', settings);
     } else {
       settings = memorySettings;
+      console.log('Settings from memory:', settings);
     }
 
     console.log('Current settings:', settings);
@@ -67,8 +82,8 @@ export async function POST(request: Request) {
       notificationFrequency
     };
 
-    console.log('Saving settings, isVercel:', isVercel);
-    if (isVercel) {
+    console.log('Saving settings, hasKV:', hasKV);
+    if (hasKV && kv) {
       await kv.set(SETTINGS_KEY, settings);
       console.log('Settings saved to KV');
     } else {

@@ -184,9 +184,18 @@ export async function clearAllEmails(): Promise<boolean> {
 export async function markStockAsSent(stockCode: string, quarter: string): Promise<void> {
   try {
     const key = `${SENT_STOCKS_KEY}:${stockCode}:${quarter}`;
+    console.log(`[markStockAsSent] Marking ${stockCode} (${quarter}) as sent with key: ${key}`);
     await setValue(key, new Date().toISOString(), 60 * 60 * 24 * 90); // 90天过期
+    
+    // 验证是否保存成功
+    const verification = await getValue(key);
+    if (verification) {
+      console.log(`[markStockAsSent] ✅ Successfully marked ${stockCode} (${quarter}) as sent`);
+    } else {
+      console.error(`[markStockAsSent] ❌ Failed to verify ${stockCode} (${quarter}) was marked as sent`);
+    }
   } catch (error) {
-    console.error('Failed to mark stock as sent:', error);
+    console.error(`[markStockAsSent] Failed to mark stock ${stockCode} (${quarter}) as sent:`, error);
   }
 }
 
@@ -197,9 +206,11 @@ export async function isStockSent(stockCode: string, quarter: string): Promise<b
   try {
     const key = `${SENT_STOCKS_KEY}:${stockCode}:${quarter}`;
     const sent = await getValue(key);
-    return sent !== null;
+    const result = sent !== null;
+    console.log(`[isStockSent] Checking ${stockCode} (${quarter}): ${result ? 'ALREADY SENT' : 'NOT SENT YET'}`);
+    return result;
   } catch (error) {
-    console.error('Failed to check if stock is sent:', error);
+    console.error(`[isStockSent] Failed to check if stock ${stockCode} (${quarter}) is sent:`, error);
     return false;
   }
 }

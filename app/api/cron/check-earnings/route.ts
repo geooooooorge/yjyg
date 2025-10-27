@@ -42,17 +42,23 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 过滤掉已发送的股票
+    console.log('=== Filtering already sent stocks ===');
     const newStocks = new Map();
     for (const [code, stockReports] of latestStocks.entries()) {
       const latestQuarter = stockReports[0].quarter;
+      const stockName = stockReports[0].stockName;
+      console.log(`Checking ${stockName} (${code}) for quarter ${latestQuarter}`);
       const alreadySent = await isStockSent(code, latestQuarter);
       
       if (!alreadySent) {
+        console.log(`  -> Adding to new stocks list`);
         newStocks.set(code, stockReports);
+      } else {
+        console.log(`  -> Skipping (already sent)`);
       }
     }
 
-    console.log(`${newStocks.size} new stocks to notify`);
+    console.log(`=== Filter complete: ${newStocks.size} new stocks to notify ===`);
 
     if (newStocks.size === 0) {
       return NextResponse.json({ 

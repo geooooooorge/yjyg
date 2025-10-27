@@ -267,7 +267,7 @@ export default function Home() {
                     else if (month === 9) quarter = 3;  // 三季度：9月30日
                     else if (month === 12) quarter = 4; // 四季度：12月31日
                     
-                    return `${year}年${quarter}季度业绩预增`;
+                    return `${year}年${quarter}季度业绩预增（近7天）`;
                   };
 
                   return sortedQuarters.map((quarter) => (

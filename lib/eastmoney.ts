@@ -257,7 +257,7 @@ export function formatEmailContent(stocks: Map<string, EarningsReport[]>): strin
       
       <div style="background-color: #fef3c7; padding: 15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
         <p style="color: #92400e; margin: 0; font-size: 15px;">
-          🔔 <strong>共发现 ${stocks.size} 只股票发布业绩预增公告</strong>
+          🔔 <strong>共发现 ${stocks.size} 只股票发布业绩预增公告（近7天）</strong>
         </p>
       </div>
       

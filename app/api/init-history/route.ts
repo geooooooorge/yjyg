@@ -9,7 +9,7 @@ export const maxDuration = 60;
  * 初始化历史数据到数据库
  * 手动调用此API来将所有历史业绩预告数据存储到Upstash（永久存储）
  */
-export async function POST() {
+async function initializeData() {
   try {
     console.log('Starting to initialize historical earnings data...');
     
@@ -67,4 +67,12 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+export async function POST() {
+  return initializeData();
+}
+
+export async function GET() {
+  return initializeData();
 }

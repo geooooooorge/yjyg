@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Plus, Trash2, RefreshCw, TrendingUp, Bell } from 'lucide-react';
+import { Mail, Plus, Trash2, RefreshCw, TrendingUp, Bell, Users } from 'lucide-react';
 
 interface Stock {
   stockCode: string;
@@ -23,11 +23,53 @@ export default function Home() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     fetchEmails();
     fetchStocks();
-  }, []);
+    updateOnlineStatus();
+    
+    // 定期发送心跳
+    const heartbeatInterval = setInterval(updateOnlineStatus, 15000); // 每15秒
+    
+    // 定期更新在线人数
+    const countInterval = setInterval(fetchOnlineCount, 10000); // 每10秒
+    
+    return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(countInterval);
+    };
+  }, [userId]);
+
+  const updateOnlineStatus = async () => {
+    try {
+      const res = await fetch('/api/online', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOnlineCount(data.count);
+      }
+    } catch (error) {
+      console.error('Failed to update online status:', error);
+    }
+  };
+
+  const fetchOnlineCount = async () => {
+    try {
+      const res = await fetch('/api/online');
+      const data = await res.json();
+      if (data.success) {
+        setOnlineCount(data.count);
+      }
+    } catch (error) {
+      console.error('Failed to fetch online count:', error);
+    }
+  };
 
   const fetchEmails = async () => {
     try {
@@ -118,6 +160,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-6xl">
+        {/* 在线人数显示 */}
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700">
+            <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {onlineCount}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">在线</span>
+          </div>
+        </div>
+
         <div className="text-center mb-6 sm:mb-12">
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-indigo-600" />

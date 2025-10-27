@@ -3,7 +3,10 @@ import { fetchEarningsReports, getLatestReports } from '@/lib/eastmoney';
 import { getCachedStocks, cacheStocks, getTodayNewStocks, getAllStocks } from '@/lib/storage';
 
 // GET - 获取业绩预增数据
-// 查询参数: type=today (今日新增) 或 type=all (全部历史数据，默认)
+// 查询参数: 
+//   - type=today (今日新增)
+//   - type=recent (近7天数据)
+//   - type=all (全部历史数据，默认)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -29,6 +32,44 @@ export async function GET(request: NextRequest) {
           type: 'today'
         });
       }
+    }
+
+    // 如果请求近7天数据
+    if (type === 'recent') {
+      // 先尝试从缓存获取（最近7天）
+      const cached = await getCachedStocks();
+      if (cached) {
+        console.log('Returning cached recent stocks (7 days):', cached.length);
+        return NextResponse.json({ 
+          success: true, 
+          count: cached.length,
+          stocks: cached,
+          source: 'cache',
+          type: 'recent'
+        });
+      }
+
+      // 缓存没有，从API获取最近7天数据
+      console.log('Fetching fresh recent stocks (7 days)');
+      const reports = await fetchEarningsReports();
+      const latestStocks = getLatestReports(reports);
+      
+      const result = Array.from(latestStocks.entries()).map(([code, reports]) => ({
+        stockCode: code,
+        stockName: reports[0].stockName,
+        reports: reports,
+      }));
+
+      // 缓存结果
+      await cacheStocks(result);
+
+      return NextResponse.json({ 
+        success: true, 
+        count: result.length,
+        stocks: result,
+        source: 'api',
+        type: 'recent'
+      });
     }
 
     // 请求全部历史数据

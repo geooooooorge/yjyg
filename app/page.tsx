@@ -52,11 +52,11 @@ export default function Home() {
         // 如果有今日新增，显示今日新增
         setStocks(todayData.stocks);
       } else {
-        // 如果今日没有新增，显示所有最新数据
-        const allRes = await fetch('/api/earnings?type=all');
-        const allData = await allRes.json();
-        if (allData.success) {
-          setStocks(allData.stocks);
+        // 如果今日没有新增，显示近7天数据（不显示全部历史）
+        const recentRes = await fetch('/api/earnings?type=recent');
+        const recentData = await recentRes.json();
+        if (recentData.success) {
+          setStocks(recentData.stocks);
         }
       }
     } catch (error) {
@@ -234,7 +234,7 @@ export default function Home() {
                 </p>
               ) : stocks.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-6 sm:py-8 text-sm sm:text-base">
-                  今日暂无新增业绩预增公告
+                  近7天暂无业绩预增公告
                 </p>
               ) : (
                 (() => {

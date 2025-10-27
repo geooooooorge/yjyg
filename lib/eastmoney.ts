@@ -160,12 +160,26 @@ async function fetchStockPriceChange(stockCode: string, reportDate: string): Pro
 
 /**
  * 获取最新的业绩预增股票列表（每个股票只取最新一条）
+ * 只返回最近7天内发布的公告
  */
 export function getLatestReports(reports: EarningsReport[]): Map<string, EarningsReport[]> {
   const stockMap = new Map<string, EarningsReport>();
   
+  // 计算7天前的日期
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  console.log(`Filtering reports published after: ${sevenDaysAgo.toISOString().split('T')[0]}`);
+  
+  // 只处理最近7天内的公告
+  const recentReports = reports.filter(report => {
+    const reportDate = new Date(report.reportDate);
+    return reportDate >= sevenDaysAgo;
+  });
+  
+  console.log(`Found ${recentReports.length} reports in the last 7 days (out of ${reports.length} total)`);
+  
   // 每个股票只保留最新的一条预增报告
-  reports.forEach(report => {
+  recentReports.forEach(report => {
     const existing = stockMap.get(report.stockCode);
     if (!existing || new Date(report.reportDate) > new Date(existing.reportDate)) {
       stockMap.set(report.stockCode, report);

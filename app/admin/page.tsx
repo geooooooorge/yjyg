@@ -184,16 +184,9 @@ export default function AdminPage() {
   const exportData = () => {
     const data = {
       emails,
-      stocks: stocks.map(s => ({
-        stockCode: s.stockCode,
-        stockName: s.stockName,
-        reports: s.reports
-      })),
+      stocks,
       history,
-      settings: {
-        notificationFrequency
-      },
-      exportTime: new Date().toISOString()
+      exportedAt: new Date().toISOString()
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -206,6 +199,35 @@ export default function AdminPage() {
 
     setMessage('数据已导出');
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const initHistoryData = async () => {
+    if (!confirm('确定要初始化历史数据吗？这将获取所有业绩预增公告并存储到数据库。')) return;
+    
+    setLoading(true);
+    setMessage('正在初始化历史数据，请稍候...');
+    
+    try {
+      const res = await fetch('/api/init-history', {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage(`✅ 成功初始化 ${data.stockCount} 只股票，共 ${data.reportCount} 条公告`);
+        // 刷新数据
+        await fetchData();
+      } else {
+        setMessage(`❌ 初始化失败: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('❌ 初始化失败，请重试');
+      console.error('Init history error:', error);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(''), 5000);
+    }
   };
 
   return (
@@ -225,7 +247,16 @@ export default function AdminPage() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={initHistoryData}
+                disabled={loading}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="初始化历史数据到数据库"
+              >
+                <Database className="w-4 h-4" />
+                初始化数据
+              </button>
               <button
                 onClick={sendTestEmail}
                 disabled={loading || emails.length === 0}

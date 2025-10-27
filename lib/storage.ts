@@ -5,6 +5,7 @@ const SENT_STOCKS_KEY = 'sent_stocks';
 const STOCKS_CACHE_KEY = 'stocks_cache';
 const EMAIL_HISTORY_KEY = 'email_history';
 const DAILY_NEW_STOCKS_KEY = 'daily_new_stocks';
+const ALL_STOCKS_KEY = 'all_stocks_history'; // 永久存储所有历史数据
 
 export interface EmailSubscriber {
   email: string;
@@ -239,6 +240,29 @@ export async function getCachedStocks(): Promise<any[] | null> {
   }
   
   return cached.data;
+}
+
+/**
+ * 存储所有历史股票数据（永久存储）
+ */
+export async function saveAllStocks(stocks: any[]): Promise<void> {
+  await setValue(ALL_STOCKS_KEY, {
+    data: stocks,
+    updatedAt: new Date().toISOString(),
+    count: stocks.length
+  });
+  console.log(`Saved ${stocks.length} stocks to permanent storage`);
+}
+
+/**
+ * 获取所有历史股票数据
+ */
+export async function getAllStocks(): Promise<any[] | null> {
+  const stored = await getValue<{ data: any[], updatedAt: string, count: number }>(ALL_STOCKS_KEY);
+  if (!stored) return null;
+  
+  console.log(`Retrieved ${stored.count} stocks from permanent storage (updated at ${stored.updatedAt})`);
+  return stored.data;
 }
 
 /**

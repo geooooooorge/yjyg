@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchEarningsReports, getLatestReports } from '@/lib/eastmoney';
-import { getCachedStocks, cacheStocks, getTodayNewStocks } from '@/lib/storage';
+import { getCachedStocks, cacheStocks, getTodayNewStocks, getAllStocks } from '@/lib/storage';
 
 // GET - 获取业绩预增数据
-// 查询参数: type=today (今日新增) 或 type=all (全部，默认)
+// 查询参数: type=today (今日新增) 或 type=all (全部历史数据，默认)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -31,22 +31,35 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 请求全部数据
-    // 先尝试从缓存获取
-    const cached = await getCachedStocks();
-    if (cached) {
-      console.log('Returning cached stocks data');
+    // 请求全部历史数据
+    // 先尝试从永久存储获取
+    const allStocks = await getAllStocks();
+    if (allStocks && allStocks.length > 0) {
+      console.log('Returning all stocks from permanent storage:', allStocks.length);
       return NextResponse.json({ 
         success: true, 
-        count: cached.length,
-        stocks: cached,
-        cached: true,
+        count: allStocks.length,
+        stocks: allStocks,
+        source: 'permanent_storage',
         type: 'all'
       });
     }
 
-    // 缓存未命中，从API获取
-    console.log('Fetching fresh stocks data');
+    // 永久存储没有数据，尝试从缓存获取（最近7天）
+    const cached = await getCachedStocks();
+    if (cached) {
+      console.log('Returning cached stocks data (recent 7 days)');
+      return NextResponse.json({ 
+        success: true, 
+        count: cached.length,
+        stocks: cached,
+        source: 'cache',
+        type: 'all'
+      });
+    }
+
+    // 缓存也没有，从API获取最近7天数据
+    console.log('Fetching fresh stocks data (recent 7 days)');
     const reports = await fetchEarningsReports();
     const latestStocks = getLatestReports(reports);
     
@@ -63,7 +76,7 @@ export async function GET(request: NextRequest) {
       success: true, 
       count: result.length,
       stocks: result,
-      cached: false,
+      source: 'api',
       type: 'all'
     });
   } catch (error) {

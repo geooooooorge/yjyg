@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { fetchEarningsReports } from '@/lib/eastmoney';
-import { cacheStocks } from '@/lib/storage';
+import { saveAllStocks } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
  * 初始化历史数据到数据库
- * 手动调用此API来将所有历史业绩预告数据存储到Upstash
+ * 手动调用此API来将所有历史业绩预告数据存储到Upstash（永久存储）
  */
 export async function POST() {
   try {
@@ -49,9 +49,9 @@ export async function POST() {
       }))
     }));
 
-    // 4. 存储到数据库
-    await cacheStocks(stocks);
-    console.log(`Successfully cached ${stocks.length} stocks with ${reports.length} total reports`);
+    // 4. 永久存储到数据库
+    await saveAllStocks(stocks);
+    console.log(`Successfully saved ${stocks.length} stocks with ${reports.length} total reports to permanent storage`);
 
     return NextResponse.json({ 
       success: true, 

@@ -8,7 +8,7 @@
 - 📧 **邮件通知**：发现连续预增股票立即发送邮件
 - 👥 **订阅管理**：可添加/删除邮件订阅列表
 - 🚀 **Vercel部署**：一键部署到Vercel，中国网络可访问
-- 💾 **数据持久化**：使用Vercel KV存储数据
+- 💾 **数据持久化**：使用Upstash Redis存储数据
 - 🎨 **现代UI**：基于Tailwind CSS的美观界面
 
 ## 技术栈
@@ -17,7 +17,7 @@
 - **语言**：TypeScript
 - **样式**：Tailwind CSS
 - **图标**：Lucide React
-- **数据库**：Vercel KV
+- **数据库**：Upstash Redis
 - **邮件**：Nodemailer
 - **部署**：Vercel
 
@@ -32,9 +32,14 @@ npm install
 
 ### 2. 配置环境变量
 
-复制 `.env.local.example` 为 `.env.local`，并填入以下配置：
+复制 `.env.example` 为 `.env.local`，并填入以下配置：
 
 ```env
+# Upstash Redis 配置（必需）
+# 从 https://console.upstash.com/ 获取
+UPSTASH_REDIS_REST_URL=https://your-redis-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_redis_token_here
+
 # 邮件配置（推荐使用QQ邮箱或163邮箱）
 SMTP_HOST=smtp.qq.com
 SMTP_PORT=465
@@ -42,15 +47,11 @@ SMTP_USER=your-email@qq.com
 SMTP_PASS=your-smtp-authorization-code
 EMAIL_FROM=your-email@qq.com
 
-# Vercel KV（部署后自动生成）
-KV_URL=
-KV_REST_API_URL=
-KV_REST_API_TOKEN=
-KV_REST_API_READ_ONLY_TOKEN=
-
 # Cron密钥（可选，增加安全性）
 CRON_SECRET=your-random-secret-string
 ```
+
+> 📖 **详细配置指南**：查看 [UPSTASH_SETUP.md](./UPSTASH_SETUP.md) 了解如何配置 Upstash Redis
 
 #### 获取QQ邮箱SMTP授权码
 
@@ -87,16 +88,16 @@ vercel login
 vercel
 ```
 
-4. 添加Vercel KV数据库：
-   - 访问 [Vercel Dashboard](https://vercel.com/dashboard)
-   - 选择你的项目
-   - Storage → Create Database → KV
-   - 创建后会自动添加环境变量
+4. 配置 Upstash Redis：
+   - 访问 [Upstash Console](https://console.upstash.com/)
+   - 创建一个新的 Redis 数据库
+   - 获取 REST API 的 URL 和 Token
+   - 详细步骤见 [UPSTASH_SETUP.md](./UPSTASH_SETUP.md)
 
 5. 配置环境变量：
    - 在Vercel Dashboard中进入项目设置
    - Settings → Environment Variables
-   - 添加邮件相关的环境变量
+   - 添加 Upstash 和邮件相关的环境变量
 
 ### 方法二：通过GitHub
 
@@ -170,10 +171,10 @@ Header: Authorization: Bearer YOUR_CRON_SECRET
    - 需要使用授权码，不是邮箱密码
    - 确保SMTP端口和加密方式正确
 
-2. **Vercel限制**：
-   - 免费版Cron任务每天有限制
-   - 函数执行时间最长60秒
-   - KV存储有容量限制
+2. **服务限制**：
+   - Vercel 免费版 Cron 任务每天有限制
+   - Vercel 函数执行时间最长60秒
+   - Upstash 免费版：10,000 命令/天，256 MB 存储
 
 3. **中国网络访问**：
    - Vercel在中国可以正常访问

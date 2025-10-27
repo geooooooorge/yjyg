@@ -234,7 +234,7 @@ export default function Home() {
                 </p>
               ) : stocks.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center py-6 sm:py-8 text-sm sm:text-base">
-                  近7天暂无业绩预增公告
+                  暂无新增业绩预增公告
                 </p>
               ) : (
                 (() => {

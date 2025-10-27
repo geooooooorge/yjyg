@@ -76,27 +76,7 @@ export async function GET(request: NextRequest) {
     await addTodayNewStocks(newStocksArray);
     console.log(`Added ${newStocksArray.length} stocks to today's new list`);
 
-    // 5. 获取邮件列表
-    const emailList = await getEmailList();
-    
-    if (emailList.length === 0) {
-      console.log('No email subscribers');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'No email subscribers, but stocks added to today list',
-        stockCount: newStocks.size
-      });
-    }
-
-    // 6. 发送邮件（只推送新增的公告内容）
-    const emailContent = formatEmailContent(newStocks);
-    const subject = `业绩预增提醒：发现 ${newStocks.size} 只股票发布业绩预增公告`;
-    
-    console.log('Attempting to send email...');
-    const sent = await sendEmail(emailList, subject, emailContent);
-    console.log('Email send result:', sent);
-
-    // 7. 无论邮件是否发送成功，都标记为已发送（避免重复通知）
+    // 5. 无论是否有订阅者，都要标记股票为已发送（避免重复通知）
     console.log('Marking stocks as sent...');
     for (const [code, stockReports] of newStocks.entries()) {
       const quarter = stockReports[0].quarter;
@@ -104,6 +84,26 @@ export async function GET(request: NextRequest) {
       await markStockAsSent(code, quarter);
     }
     console.log('All stocks marked as sent');
+
+    // 6. 获取邮件列表
+    const emailList = await getEmailList();
+    
+    if (emailList.length === 0) {
+      console.log('No email subscribers');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'No email subscribers, but stocks added to today list and marked as sent',
+        stockCount: newStocks.size
+      });
+    }
+
+    // 7. 发送邮件（只推送新增的公告内容）
+    const emailContent = formatEmailContent(newStocks);
+    const subject = `业绩预增提醒：发现 ${newStocks.size} 只股票发布业绩预增公告`;
+    
+    console.log('Attempting to send email...');
+    const sent = await sendEmail(emailList, subject, emailContent);
+    console.log('Email send result:', sent);
 
     if (sent) {
       // 8. 记录发送历史

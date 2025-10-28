@@ -40,6 +40,9 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
       client: 'WEB',
     };
 
+    console.log('Fetching from:', url);
+    console.log('With params:', JSON.stringify(params, null, 2));
+    
     const response = await axios.get(url, { 
       params,
       timeout: 15000,
@@ -48,6 +51,14 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
         'Referer': 'http://data.eastmoney.com/',
         'Accept': 'application/json'
       }
+    });
+
+    console.log('API Response status:', response.status);
+    console.log('API Response data structure:', {
+      hasData: !!response.data,
+      hasResult: !!response.data?.result,
+      hasResultData: !!response.data?.result?.data,
+      dataLength: response.data?.result?.data?.length || 0
     });
 
     if (response.data && response.data.result && response.data.result.data) {
@@ -107,9 +118,16 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
       return filteredReports;
     }
 
+    console.error('API response structure invalid - no data found');
     return [];
-  } catch (error) {
-    console.error('Failed to fetch earnings reports:', error);
+  } catch (error: any) {
+    console.error('Failed to fetch earnings reports:', error.message);
+    if (error.response) {
+      console.error('Error response:', {
+        status: error.response.status,
+        data: error.response.data
+      });
+    }
     return [];
   }
 }

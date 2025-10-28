@@ -51,11 +51,14 @@ export async function POST() {
     console.log(`Fetched ${reports.length} stock reports`);
     
     if (reports.length === 0) {
+      console.error('No reports returned from fetchEarningsReports');
       return NextResponse.json({
         success: false,
-        error: 'No stock data fetched from API'
+        error: 'No stock data fetched from API. Please check API connection or try again later.'
       }, { status: 500 });
     }
+    
+    console.log('Sample report:', JSON.stringify(reports[0], null, 2));
     
     // 4. 按股票代码分组
     const stocksMap = new Map<string, any>();

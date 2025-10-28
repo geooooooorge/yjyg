@@ -627,8 +627,15 @@ export default function AdminPage() {
                   </div>
                   
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    清空缓存并重新获取最新的业绩预告数据（包含新增的详细字段）
+                    清空 Upstash 数据库中的所有缓存数据，包括历史记录、今日新增、已发送记录等。
+                    刷新后，系统会重新从东方财富 API 获取最新数据（包含新增的详细字段）。
                   </p>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      ⚠️ 注意：此操作会清空数据库中的所有股票数据和 AI 点评，刷新后需要重新生成 AI 评分。
+                    </p>
+                  </div>
 
                   <button
                     onClick={refreshData}
@@ -636,7 +643,7 @@ export default function AdminPage() {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    刷新数据
+                    清空并刷新数据
                   </button>
                 </div>
 

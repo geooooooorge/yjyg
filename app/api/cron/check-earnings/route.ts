@@ -94,8 +94,26 @@ export async function GET(request: NextRequest) {
         try {
           console.log(`Generating AI comment for ${report.stockName} (${code})`);
           
-          const announcement = `${report.stockName}（${code}）发布业绩预告：${report.forecastType}，业绩变动幅度为${report.changeMin}%~${report.changeMax}%，报告期为${report.quarter}。`;
-          const prompt = `这是一家上市公司的消息：${announcement}\n\n请判断该消息本身对这个公司的股价有什么影响，用-100到100分来打分，打分权重是对公司营收和利润大幅持续提高的确定性越有利分数越高；如果该公告不是关于公司业绩而是对公司股价有直接影响的请用SABCD来打分（S为超高评价，D为最低评价）。（不显示思考过程，输出简要分析总结，将评分结果写在前）`;
+          // 构建完整的公告数据JSON
+          const announcementData = {
+            stockName: report.stockName,
+            stockCode: code,
+            forecastType: report.forecastType,
+            changeMin: report.changeMin,
+            changeMax: report.changeMax,
+            quarter: report.quarter,
+            reportDate: report.reportDate,
+            predictValue: report.predictValue,
+            changeReason: report.changeReason,
+            content: report.content
+          };
+          
+          // 构建提示词，重点关注变动原因
+          const prompt = `这是一家上市公司的业绩预告完整信息：
+
+${JSON.stringify(announcementData, null, 2)}
+
+请重点分析"changeReason"（业绩变动原因）和"content"（公告内容）字段，判断该消息本身对这个公司的股价有什么影响，用-100到100分来打分，打分权重是对公司营收和利润大幅持续提高的确定性越有利分数越高；如果该公告不是关于公司业绩而是对公司股价有直接影响的请用SABCD来打分（S为超高评价，D为最低评价）。（不显示思考过程，输出简要分析总结，将评分结果写在前）`;
           
           const response = await axios.post(
             'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',

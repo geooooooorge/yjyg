@@ -118,25 +118,19 @@ export default function AdminPage() {
   };
 
   const sendTestEmail = async () => {
-    if (emails.length === 0) {
-      setMessage('没有订阅邮箱，无法发送测试邮件');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-
-    if (!confirm(`确定要向 ${emails.length} 个邮箱发送测试邮件吗？`)) return;
+    if (!confirm('确定要发送测试邮件到 15010606939@163.com 吗？')) return;
 
     setLoading(true);
     setMessage('正在发送测试邮件...');
 
     try {
-      const res = await fetch('/api/test-email');
+      const res = await fetch('/api/send-test-email', { method: 'POST' });
       const data = await res.json();
       
       if (data.success) {
-        setMessage(`✅ 测试邮件已发送到 ${data.recipients.length} 个邮箱`);
+        setMessage(`✅ 测试邮件已发送到 ${data.recipient}（${data.stockCount} 只股票）`);
       } else {
-        setMessage(`❌ 发送失败: ${data.error}`);
+        setMessage(`❌ 发送失败: ${data.message || data.error}`);
       }
     } catch (error) {
       setMessage('❌ 发送失败，请检查网络连接');

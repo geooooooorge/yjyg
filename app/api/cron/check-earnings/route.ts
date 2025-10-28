@@ -85,56 +85,21 @@ export async function GET(request: NextRequest) {
     }
     console.log('All stocks marked as sent');
 
-    // 6. 获取邮件列表
-    const emailList = await getEmailList();
+    // 6. 不自动发送邮件，只返回新增股票信息
+    console.log('New stocks detected, but auto-email disabled. Use manual send API.');
     
-    if (emailList.length === 0) {
-      console.log('No email subscribers');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'No email subscribers, but stocks added to today list and marked as sent',
-        stockCount: newStocks.size
-      });
-    }
-
-    // 7. 发送邮件（只推送新增的公告内容）
-    const emailContent = formatEmailContent(newStocks);
-    const subject = `业绩预增提醒：发现 ${newStocks.size} 只股票发布业绩预增公告`;
-    
-    console.log('Attempting to send email...');
-    const sent = await sendEmail(emailList, subject, emailContent);
-    console.log('Email send result:', sent);
-
-    if (sent) {
-      // 8. 记录发送历史
-      const stocksArray = Array.from(newStocks.entries()).map(([code, reports]) => ({
+    return NextResponse.json({ 
+      success: true, 
+      message: `Found ${newStocks.size} new stocks, added to today list and marked as sent. Use /api/send-test-email to manually send.`,
+      stockCount: newStocks.size,
+      newStocks: Array.from(newStocks.entries()).map(([code, reports]) => ({
         stockCode: code,
         stockName: reports[0].stockName,
         quarter: reports[0].quarter,
         forecastType: reports[0].forecastType,
         changeRange: `${reports[0].changeMin}%~${reports[0].changeMax}%`
-      }));
-
-      await addEmailHistory({
-        sentAt: new Date().toISOString(),
-        recipients: emailList,
-        stockCount: newStocks.size,
-        stocks: stocksArray
-      });
-
-      return NextResponse.json({ 
-        success: true, 
-        message: `Sent notifications for ${newStocks.size} stocks to ${emailList.length} subscribers`,
-        stockCount: newStocks.size,
-        emailCount: emailList.length
-      });
-    } else {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to send email, but stocks marked as sent to avoid duplicate notifications',
-        stockCount: newStocks.size
-      }, { status: 500 });
-    }
+      }))
+    });
 
   } catch (error) {
     console.error('Cron job error:', error);

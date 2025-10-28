@@ -224,6 +224,35 @@ export default function AdminPage() {
     }
   };
 
+  const refreshData = async () => {
+    if (!confirm('确定要清空缓存并重新获取数据吗？这将清除今日新增列表和已发送记录。')) return;
+    
+    setLoading(true);
+    setMessage('正在清空缓存...');
+    
+    try {
+      const res = await fetch('/api/refresh-data', {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage('✅ 缓存已清空，请刷新页面查看最新数据');
+        // 刷新数据
+        await fetchData();
+      } else {
+        setMessage(`❌ 刷新失败: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('❌ 刷新失败，请重试');
+      console.error('Refresh error:', error);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(''), 5000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -586,6 +615,29 @@ export default function AdminPage() {
                       (调试: notificationFrequency = {notificationFrequency}, tempFrequency = {tempFrequency})
                     </p>
                   </div>
+                </div>
+
+                {/* 数据管理 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <RefreshCw className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <h4 className="text-md font-semibold text-gray-800 dark:text-white">
+                      数据管理
+                    </h4>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    清空缓存并重新获取最新的业绩预告数据（包含新增的详细字段）
+                  </p>
+
+                  <button
+                    onClick={refreshData}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    刷新数据
+                  </button>
                 </div>
 
                 {/* 常用频率快捷按钮 */}

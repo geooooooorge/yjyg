@@ -25,6 +25,8 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [onlineCount, setOnlineCount] = useState(0);
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [aiComments, setAiComments] = useState<Record<string, string>>({});
+  const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchEmails();
@@ -136,25 +138,52 @@ export default function Home() {
 
   const removeEmail = async (email: string) => {
     try {
-      const res = await fetch('/api/emails', {
+      await fetch('/api/emails', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-
-      const data = await res.json();
-      
-      if (data.success) {
-        setMessage('邮箱删除成功！');
-        fetchEmails();
-      } else {
-        setMessage(data.error || '删除失败');
-      }
+      setEmails(emails.filter((e) => e !== email));
+      setMessage('邮箱已删除');
     } catch (error) {
       setMessage('删除失败，请重试');
     }
 
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const getAiComment = async (stock: Stock) => {
+    const report = stock.reports[0];
+    const key = stock.stockCode;
+    
+    // 如果已经有评论，不重复获取
+    if (aiComments[key]) return;
+    
+    setLoadingComments(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const res = await fetch('/api/ai-comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stockName: stock.stockName,
+          stockCode: stock.stockCode,
+          forecastType: report.forecastType,
+          changeMin: report.changeMin,
+          changeMax: report.changeMax,
+          quarter: report.quarter,
+        }),
+      });
+      
+      const data = await res.json();
+      if (data.success && data.comment) {
+        setAiComments(prev => ({ ...prev, [key]: data.comment }));
+      }
+    } catch (error) {
+      console.error('Failed to get AI comment:', error);
+    } finally {
+      setLoadingComments(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   return (
@@ -189,80 +218,58 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-                <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 dark:text-white">
-                  邮件订阅
-                </h2>
-              </div>
-              {emails.length > 0 && (
-                <div className="px-2 sm:px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-xs sm:text-sm font-medium">
-                  {emails.length} 个
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 mb-4">
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addEmail()}
-                placeholder="输入邮箱地址"
-                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              />
-              <button
-                onClick={addEmail}
-                className="px-4 py-2.5 sm:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base font-medium"
-              >
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                添加
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {emails.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-6 sm:py-8 text-sm sm:text-base">
-                  暂无订阅邮箱
-                </p>
-              ) : (
-                emails.map((email, index) => (
-                  <div
-                    key={email}
-                    className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-5 sm:w-6 flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate">{email}</span>
-                    </div>
-                    <button
-                      onClick={() => removeEmail(email)}
-                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 flex-shrink-0 ml-2"
-                      title="删除此邮箱"
-                    >
-                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-              <div className="flex items-start gap-2">
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-                  <p className="font-semibold mb-1">自动通知说明：</p>
-                  <p>系统每5分钟检查一次，发现新公告立即推送，每日08:00发送汇总</p>
-                </div>
-              </div>
-            </div>
+        {/* 简化的邮箱订阅模块 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Mail className="w-4 h-4 text-indigo-600" />
+            <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
+              邮件订阅
+            </h2>
+            {emails.length > 0 && (
+              <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-xs">
+                {emails.length}
+              </span>
+            )}
           </div>
 
+          <div className="flex gap-2 mb-2">
+            <input
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && addEmail()}
+              placeholder="输入邮箱"
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+            <button
+              onClick={addEmail}
+              className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-sm"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {emails.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {emails.map((email) => (
+                <div
+                  key={email}
+                  className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs group"
+                >
+                  <span className="text-gray-700 dark:text-gray-200">{email}</span>
+                  <button
+                    onClick={() => removeEmail(email)}
+                    className="text-red-600 hover:text-red-700 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-2">
@@ -352,7 +359,7 @@ export default function Home() {
                                   {report.forecastType} {report.changeMin}%~{report.changeMax}%
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
                                 <span className="truncate">公告：{report.reportDate}</span>
                                 <a
                                   href={announcementUrl}
@@ -362,6 +369,26 @@ export default function Home() {
                                 >
                                   查看 →
                                 </a>
+                              </div>
+                              
+                              {/* AI 点评 */}
+                              <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                                {aiComments[stock.stockCode] ? (
+                                  <div className="flex items-start gap-1.5">
+                                    <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 flex-shrink-0">AI:</span>
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                                      {aiComments[stock.stockCode]}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => getAiComment(stock)}
+                                    disabled={loadingComments[stock.stockCode]}
+                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {loadingComments[stock.stockCode] ? '生成中...' : '🤖 获取 AI 点评'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );

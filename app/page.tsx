@@ -407,47 +407,62 @@ export default function Home() {
                           return (
                             <div
                               key={stock.stockCode}
-                              className="p-2.5 sm:p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800"
+                              className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
                             >
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                                  <span className="font-semibold text-sm sm:text-base text-gray-800 dark:text-white truncate">
-                                    {stock.stockName}
-                                  </span>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                                    {stock.stockCode}
-                                  </span>
-                                </div>
-                                <span className="text-xs sm:text-sm font-medium text-green-600 dark:text-green-400 flex-shrink-0">
-                                  {report.forecastType} {report.changeMin}%~{report.changeMax}%
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                <span className="truncate">公告：{report.reportDate}</span>
-                                <a
-                                  href={announcementUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0 ml-2 active:text-indigo-800"
-                                >
-                                  查看 →
-                                </a>
-                              </div>
-                              
-                              {/* AI 评分 */}
-                              <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+                              {/* AI 评分 - 主要信息 */}
+                              <div className="mb-3">
                                 {loadingComments[stock.stockCode] ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs text-purple-600 dark:text-purple-400">🤖 AI 评分生成中...</span>
+                                  <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+                                    <span className="text-sm text-purple-600 dark:text-purple-400">🤖 AI 评分生成中...</span>
                                   </div>
                                 ) : aiComments[stock.stockCode] ? (
-                                  <div className="flex items-start gap-1.5">
-                                    <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 flex-shrink-0">AI:</span>
-                                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
-                                      {aiComments[stock.stockCode]}
-                                    </p>
+                                  <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-sm font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">🤖 AI:</span>
+                                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
+                                        {aiComments[stock.stockCode]}
+                                      </p>
+                                    </div>
                                   </div>
-                                ) : null}
+                                ) : (
+                                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">等待 AI 评分...</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* 股票基本信息 */}
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-base text-gray-800 dark:text-white">
+                                      {stock.stockName}
+                                    </span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
+                                      {stock.stockCode}
+                                    </span>
+                                  </div>
+                                  <a
+                                    href={announcementUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0"
+                                  >
+                                    查看详情 →
+                                  </a>
+                                </div>
+                                
+                                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <span className="font-medium text-green-600 dark:text-green-400">
+                                      {report.forecastType}
+                                    </span>
+                                    <span>{report.changeMin}%~{report.changeMax}%</span>
+                                  </span>
+                                  <span className="text-gray-400">|</span>
+                                  <span>公告：{report.reportDate}</span>
+                                </div>
                               </div>
                             </div>
                           );

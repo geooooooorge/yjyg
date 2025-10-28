@@ -6,6 +6,7 @@ const STOCKS_CACHE_KEY = 'stocks_cache';
 const EMAIL_HISTORY_KEY = 'email_history';
 const DAILY_NEW_STOCKS_KEY = 'daily_new_stocks';
 const ALL_STOCKS_KEY = 'all_stocks_history'; // 永久存储所有历史数据
+const AI_COMMENTS_KEY = 'ai_comments'; // AI 点评存储
 
 export interface EmailSubscriber {
   email: string;
@@ -390,5 +391,46 @@ export async function addTodayNewStocks(stocks: any[]): Promise<void> {
       timestamp: Date.now(),
       date: today
     });
+  }
+}
+
+/**
+ * 保存 AI 点评
+ */
+export async function saveAiComment(stockCode: string, quarter: string, comment: string): Promise<void> {
+  try {
+    const comments = await getValue<Record<string, string>>(AI_COMMENTS_KEY) || {};
+    const key = `${stockCode}_${quarter}`;
+    comments[key] = comment;
+    await setValue(AI_COMMENTS_KEY, comments);
+    console.log(`AI comment saved for ${stockCode} (${quarter})`);
+  } catch (error) {
+    console.error('Error saving AI comment:', error);
+  }
+}
+
+/**
+ * 获取 AI 点评
+ */
+export async function getAiComment(stockCode: string, quarter: string): Promise<string | null> {
+  try {
+    const comments = await getValue<Record<string, string>>(AI_COMMENTS_KEY) || {};
+    const key = `${stockCode}_${quarter}`;
+    return comments[key] || null;
+  } catch (error) {
+    console.error('Error getting AI comment:', error);
+    return null;
+  }
+}
+
+/**
+ * 获取所有 AI 点评
+ */
+export async function getAllAiComments(): Promise<Record<string, string>> {
+  try {
+    return await getValue<Record<string, string>>(AI_COMMENTS_KEY) || {};
+  } catch (error) {
+    console.error('Error getting all AI comments:', error);
+    return {};
   }
 }

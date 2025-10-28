@@ -26,7 +26,6 @@ export default function Home() {
   const [onlineCount, setOnlineCount] = useState(0);
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [aiComments, setAiComments] = useState<Record<string, string>>({});
-  const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
   const [aiTestStatus, setAiTestStatus] = useState<{
     status: 'testing' | 'success' | 'error' | 'idle';
     message: string;
@@ -158,46 +157,31 @@ export default function Home() {
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const getAiComment = async (stock: Stock) => {
-    const report = stock.reports[0];
-    const key = stock.stockCode;
-    
-    // 如果已经有评论，不重复获取
-    if (aiComments[key] || loadingComments[key]) return;
-    
-    setLoadingComments(prev => ({ ...prev, [key]: true }));
-    
+  // 从数据库加载所有 AI 点评
+  const fetchAiComments = async () => {
     try {
-      const res = await fetch('/api/ai-comment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stockName: stock.stockName,
-          stockCode: stock.stockCode,
-          forecastType: report.forecastType,
-          changeMin: report.changeMin,
-          changeMax: report.changeMax,
-          quarter: report.quarter,
-        }),
-      });
-      
+      const res = await fetch('/api/ai-comments');
       const data = await res.json();
-      if (data.success && data.comment) {
-        setAiComments(prev => ({ ...prev, [key]: data.comment }));
+      
+      if (data.success && data.comments) {
+        // 转换为 stockCode -> comment 的格式
+        const commentsByCode: Record<string, string> = {};
+        Object.entries(data.comments).forEach(([key, comment]) => {
+          // key 格式: stockCode_quarter
+          const stockCode = key.split('_')[0];
+          commentsByCode[stockCode] = comment as string;
+        });
+        setAiComments(commentsByCode);
       }
     } catch (error) {
-      console.error('Failed to get AI comment:', error);
-    } finally {
-      setLoadingComments(prev => ({ ...prev, [key]: false }));
+      console.error('Failed to fetch AI comments:', error);
     }
   };
 
-  // 当股票数据加载完成后，自动获取所有AI评分
+  // 当股票数据加载完成后，加载 AI 点评
   useEffect(() => {
     if (stocks.length > 0) {
-      stocks.forEach(stock => {
-        getAiComment(stock);
-      });
+      fetchAiComments();
     }
   }, [stocks]);
 
@@ -411,12 +395,7 @@ export default function Home() {
                             >
                               {/* AI 评分 - 主要信息 */}
                               <div className="mb-3">
-                                {loadingComments[stock.stockCode] ? (
-                                  <div className="flex items-center gap-2 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
-                                    <span className="text-sm text-purple-600 dark:text-purple-400">🤖 AI 评分生成中...</span>
-                                  </div>
-                                ) : aiComments[stock.stockCode] ? (
+                                {aiComments[stock.stockCode] ? (
                                   <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                                     <div className="flex items-start gap-2">
                                       <span className="text-sm font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">🤖 AI:</span>
@@ -427,7 +406,7 @@ export default function Home() {
                                   </div>
                                 ) : (
                                   <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">等待 AI 评分...</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">暂无 AI 评分</span>
                                   </div>
                                 )}
                               </div>

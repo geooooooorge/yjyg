@@ -12,15 +12,13 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // 构建公告内容
+    const announcement = `${stockName}（${stockCode}）发布业绩预告：${forecastType}，业绩变动幅度为${changeMin}%~${changeMax}%，报告期为${quarter}。`;
+    
     // 构建提示词
-    const prompt = `请对以下股票业绩预增公告进行简短点评（50字以内）：
+    const prompt = `这是一家上市公司的消息：${announcement}
 
-股票名称：${stockName}（${stockCode}）
-预告类型：${forecastType}
-业绩变动：${changeMin}% ~ ${changeMax}%
-报告期：${quarter}
-
-请从投资角度给出简洁的分析和建议。`;
+请判断该消息本身对这个公司的股价有什么影响，用-100到100分来打分，打分权重是对公司营收和利润大幅持续提高的确定性越有利分数越高；如果该公告不是关于公司业绩而是对公司股价有直接影响的请用SABCD来打分（S为超高评价，D为最低评价）。（不显示思考过程，输出简要分析总结，将评分结果写在前）`;
 
     // 调用阿里千问 API
     const response = await axios.post(

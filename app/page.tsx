@@ -157,7 +157,7 @@ export default function Home() {
     const key = stock.stockCode;
     
     // 如果已经有评论，不重复获取
-    if (aiComments[key]) return;
+    if (aiComments[key] || loadingComments[key]) return;
     
     setLoadingComments(prev => ({ ...prev, [key]: true }));
     
@@ -185,6 +185,15 @@ export default function Home() {
       setLoadingComments(prev => ({ ...prev, [key]: false }));
     }
   };
+
+  // 当股票数据加载完成后，自动获取所有AI评分
+  useEffect(() => {
+    if (stocks.length > 0) {
+      stocks.forEach(stock => {
+        getAiComment(stock);
+      });
+    }
+  }, [stocks]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -371,24 +380,20 @@ export default function Home() {
                                 </a>
                               </div>
                               
-                              {/* AI 点评 */}
+                              {/* AI 评分 */}
                               <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
-                                {aiComments[stock.stockCode] ? (
+                                {loadingComments[stock.stockCode] ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs text-purple-600 dark:text-purple-400">🤖 AI 评分生成中...</span>
+                                  </div>
+                                ) : aiComments[stock.stockCode] ? (
                                   <div className="flex items-start gap-1.5">
                                     <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 flex-shrink-0">AI:</span>
                                     <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                                       {aiComments[stock.stockCode]}
                                     </p>
                                   </div>
-                                ) : (
-                                  <button
-                                    onClick={() => getAiComment(stock)}
-                                    disabled={loadingComments[stock.stockCode]}
-                                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {loadingComments[stock.stockCode] ? '生成中...' : '🤖 获取 AI 点评'}
-                                  </button>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           );

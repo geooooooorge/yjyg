@@ -7,6 +7,16 @@
 - **[QUICK_START.md](./QUICK_START.md)** - 快速启动指南
 - **[QUICKSTART.md](./QUICKSTART.md)** - 快速入门（备用）
 
+### 📋 需求文档
+- **[REQUIREMENTS_TEMPLATE.md](./REQUIREMENTS_TEMPLATE.md)** ⭐ **需求模板**
+  - 空白需求文档模板
+  - 适用于新项目
+  - 只需填写自然语言
+- **[REQUIREMENTS.md](./REQUIREMENTS.md)** - 本项目需求文档
+  - 完整的需求说明
+  - 已填写示例
+  - 可作为参考
+
 ### 🏗️ 架构文档
 - **[PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md)** ⭐ **核心文档**
   - 完整的项目架构说明
@@ -56,37 +66,45 @@
 
 ## 📖 使用场景指南
 
-### 场景 1：第一次接触项目
+### 场景 1：开始一个新项目 🆕
+**阅读顺序：**
+1. [REQUIREMENTS_TEMPLATE.md](./REQUIREMENTS_TEMPLATE.md) - 填写需求
+2. [REUSABLE_TEMPLATE.md](./REUSABLE_TEMPLATE.md) - 选择技术栈
+3. [TECH_STACK_REFERENCE.md](./TECH_STACK_REFERENCE.md) - 查看代码模板
+
+### 场景 2：第一次接触本项目
 **阅读顺序：**
 1. [README.md](./README.md) - 了解项目
-2. [QUICK_START.md](./QUICK_START.md) - 快速启动
-3. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 深入理解
+2. [REQUIREMENTS.md](./REQUIREMENTS.md) - 理解需求
+3. [QUICK_START.md](./QUICK_START.md) - 快速启动
+4. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 深入理解
 
-### 场景 2：本地开发环境搭建
+### 场景 3：本地开发环境搭建
 **阅读顺序：**
 1. [QUICK_START.md](./QUICK_START.md) - 基础配置
 2. [UPSTASH_SETUP.md](./UPSTASH_SETUP.md) - 数据库配置
 3. [EMAIL_CONFIG.md](./EMAIL_CONFIG.md) - 邮件配置
 
-### 场景 3：部署到生产环境
+### 场景 4：部署到生产环境
 **阅读顺序：**
 1. [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) - 部署前检查
 2. [VERCEL_DEPLOY.md](./VERCEL_DEPLOY.md) - Vercel 部署
 3. [UPSTASH_SETUP.md](./UPSTASH_SETUP.md) - 生产环境配置
 
-### 场景 4：复用到新项目
+### 场景 5：复用到新项目
 **阅读顺序：**
-1. [REUSABLE_TEMPLATE.md](./REUSABLE_TEMPLATE.md) - 复用指南
-2. [TECH_STACK_REFERENCE.md](./TECH_STACK_REFERENCE.md) - 技术参考
-3. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 架构参考
+1. [REQUIREMENTS_TEMPLATE.md](./REQUIREMENTS_TEMPLATE.md) - 填写需求
+2. [REUSABLE_TEMPLATE.md](./REUSABLE_TEMPLATE.md) - 复用指南
+3. [TECH_STACK_REFERENCE.md](./TECH_STACK_REFERENCE.md) - 技术参考
+4. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 架构参考
 
-### 场景 5：功能开发和优化
+### 场景 6：功能开发和优化
 **阅读顺序：**
 1. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 理解架构
 2. [TECH_STACK_REFERENCE.md](./TECH_STACK_REFERENCE.md) - 技术速查
 3. [REUSABLE_TEMPLATE.md](./REUSABLE_TEMPLATE.md) - 最佳实践
 
-### 场景 6：问题排查
+### 场景 7：问题排查
 **阅读顺序：**
 1. [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) - 常见问题
 2. [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md) - 故障排查
@@ -95,6 +113,33 @@
 ---
 
 ## 🎯 核心文档详解
+
+### 📋 REQUIREMENTS_TEMPLATE.md
+**内容概览：**
+- ✅ 完整的需求文档模板
+- ✅ 项目基本信息模板
+- ✅ 核心需求描述框架
+- ✅ 数据需求模板
+- ✅ 通知需求模板
+- ✅ 界面需求模板
+- ✅ 技术需求选择
+- ✅ 数据存储设计模板
+- ✅ 安全和性能需求
+- ✅ 开发计划模板
+- ✅ 验收标准
+
+**适合人群：**
+- 准备开始新项目的人
+- 需要整理需求的人
+- 想要规范化需求文档的人
+
+**使用方法：**
+1. 复制模板到新项目
+2. 填写所有 `[待填写]` 标记
+3. 勾选适合的选项
+4. 删除不需要的示例
+
+---
 
 ### 📘 PROJECT_ARCHITECTURE.md
 **内容概览：**
@@ -189,13 +234,14 @@
 ## 📊 文档统计
 
 ### 文档数量
-- 总文档数：**17** 个
-- 核心文档：**3** 个 ⭐
+- 总文档数：**19** 个
+- 核心文档：**5** 个 ⭐
 - 配置文档：**5** 个
 - 部署文档：**3** 个
 - 其他文档：**6** 个
 
 ### 内容覆盖
+- ✅ 需求文档模板
 - ✅ 项目介绍和快速开始
 - ✅ 完整架构文档
 - ✅ 可复用模板

@@ -27,11 +27,17 @@ export default function Home() {
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [aiComments, setAiComments] = useState<Record<string, string>>({});
   const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
+  const [aiTestStatus, setAiTestStatus] = useState<{
+    status: 'testing' | 'success' | 'error' | 'idle';
+    message: string;
+    responseTime?: string;
+  }>({ status: 'idle', message: '' });
 
   useEffect(() => {
     fetchEmails();
     fetchStocks();
     updateOnlineStatus();
+    testAiApi();
     
     // 定期发送心跳
     const heartbeatInterval = setInterval(updateOnlineStatus, 15000); // 每15秒
@@ -195,6 +201,33 @@ export default function Home() {
     }
   }, [stocks]);
 
+  const testAiApi = async () => {
+    setAiTestStatus({ status: 'testing', message: '🔄 测试 AI API 连接...' });
+    
+    try {
+      const res = await fetch('/api/test-ai');
+      const data = await res.json();
+      
+      if (data.success) {
+        setAiTestStatus({ 
+          status: 'success', 
+          message: `${data.message} (${data.responseTime})`,
+          responseTime: data.responseTime
+        });
+      } else {
+        setAiTestStatus({ 
+          status: 'error', 
+          message: data.error || '❌ AI API 测试失败'
+        });
+      }
+    } catch (error) {
+      setAiTestStatus({ 
+        status: 'error', 
+        message: '❌ 无法连接到 AI API'
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-6xl">
@@ -276,6 +309,27 @@ export default function Home() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* AI API 测试状态 */}
+        <div className={`mb-4 sm:mb-6 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${
+          aiTestStatus.status === 'success' 
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' 
+            : aiTestStatus.status === 'error'
+            ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
+            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span>{aiTestStatus.message}</span>
+            {aiTestStatus.status !== 'testing' && (
+              <button
+                onClick={testAiApi}
+                className="text-xs underline hover:no-underline"
+              >
+                重新测试
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">

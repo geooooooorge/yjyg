@@ -253,6 +253,35 @@ export default function AdminPage() {
     }
   };
 
+  const reinitializeAll = async () => {
+    if (!confirm('⚠️ 警告：此操作将完全重新初始化整个项目！\n\n将会：\n1. 清空所有数据库缓存（包括历史数据）\n2. 重新获取所有股票数据\n3. 重新生成所有 AI 评分\n\n此过程可能需要几分钟时间。确定要继续吗？')) return;
+    
+    setLoading(true);
+    setMessage('🔄 正在重新初始化项目，请耐心等待（可能需要3-5分钟）...');
+    
+    try {
+      const res = await fetch('/api/reinitialize', {
+        method: 'POST'
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage(`✅ 项目重新初始化成功！\n- 股票数: ${data.stats.stocksCount}\n- 报告数: ${data.stats.reportsCount}\n- AI 评分: ${data.stats.aiCommentsGenerated}`);
+        // 刷新数据
+        await fetchData();
+      } else {
+        setMessage(`❌ 初始化失败: ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('❌ 初始化失败，请重试');
+      console.error('Reinitialize error:', error);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(''), 10000);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -637,14 +666,32 @@ export default function AdminPage() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={refreshData}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    清空并刷新数据
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={refreshData}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      快速刷新
+                    </button>
+                    
+                    <button
+                      onClick={reinitializeAll}
+                      disabled={loading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                    >
+                      <Database className="w-4 h-4" />
+                      完全重新初始化
+                    </button>
+                  </div>
+                  
+                  <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs">
+                    <p className="text-blue-800 dark:text-blue-200">
+                      💡 <strong>快速刷新</strong>：只清空缓存，不重新生成 AI 评分<br/>
+                      💡 <strong>完全重新初始化</strong>：清空所有数据，重新获取并生成 AI 评分（推荐）
+                    </p>
+                  </div>
                 </div>
 
                 {/* 常用频率快捷按钮 */}

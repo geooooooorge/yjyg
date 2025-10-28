@@ -33,7 +33,7 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
       pageSize: 500,
       pageNumber: 1,
       reportName: 'RPT_PUBLIC_OP_NEWPREDICT',
-      columns: 'SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,REPORT_DATE,PREDICT_TYPE,PREDICT_FINANCE_CODE,ADD_AMP_LOWER,ADD_AMP_UPPER,PREDICT_CONTENT,CHANGE_REASON_EXPLAIN,PREDICT_AMT_UPPER,PREDICT_AMT_LOWER,LAST_YEAR_SAME_PERIOD,CHANGE_RATIO_YOY,CHANGE_RATIO_QOQ',
+      columns: 'SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,REPORT_DATE,PREDICT_TYPE,PREDICT_FINANCE_CODE,ADD_AMP_LOWER,ADD_AMP_UPPER,PREDICT_CONTENT,CHANGE_REASON_EXPLAIN,PREDICT_AMT_UPPER,PREDICT_AMT_LOWER',
       // 筛选条件：预增类型 + 净利润指标
       filter: '(PREDICT_TYPE in ("预增","略增","续盈","扭亏")) and (PREDICT_FINANCE_CODE="004")',
       source: 'WEB',
@@ -83,9 +83,6 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
           content: item.PREDICT_CONTENT || item.CHANGE_REASON_EXPLAIN || '',
           // 新增字段
           predictValue: predictValue || undefined,
-          lastYearValue: parseFloat(item.LAST_YEAR_SAME_PERIOD) || undefined,
-          changeYoY: parseFloat(item.CHANGE_RATIO_YOY) || undefined,
-          changeQoQ: parseFloat(item.CHANGE_RATIO_QOQ) || undefined,
           changeReason: item.CHANGE_REASON_EXPLAIN || undefined,
         };
       });

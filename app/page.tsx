@@ -432,15 +432,61 @@ export default function Home() {
                                   </a>
                                 </div>
                                 
-                                <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-                                  <span className="flex items-center gap-1">
-                                    <span className="font-medium text-green-600 dark:text-green-400">
-                                      {report.forecastType}
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="flex items-center gap-1">
+                                      <span className="font-medium text-green-600 dark:text-green-400">
+                                        {report.forecastType}
+                                      </span>
+                                      <span>{report.changeMin}%~{report.changeMax}%</span>
                                     </span>
-                                    <span>{report.changeMin}%~{report.changeMax}%</span>
-                                  </span>
-                                  <span className="text-gray-400">|</span>
-                                  <span>公告：{report.reportDate}</span>
+                                    <span className="text-gray-400">|</span>
+                                    <span>公告：{report.reportDate}</span>
+                                  </div>
+                                  
+                                  {/* 详细业绩数据 */}
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    {report.predictValue && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500 dark:text-gray-400">预测值:</span>
+                                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                                          {(report.predictValue / 100000000).toFixed(2)}亿
+                                        </span>
+                                      </div>
+                                    )}
+                                    {report.lastYearValue && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500 dark:text-gray-400">去年同期:</span>
+                                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                                          {(report.lastYearValue / 100000000).toFixed(2)}亿
+                                        </span>
+                                      </div>
+                                    )}
+                                    {report.changeYoY !== undefined && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500 dark:text-gray-400">同比:</span>
+                                        <span className={`font-medium ${report.changeYoY >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          {report.changeYoY > 0 ? '+' : ''}{report.changeYoY.toFixed(2)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                    {report.changeQoQ !== undefined && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-gray-500 dark:text-gray-400">环比:</span>
+                                        <span className={`font-medium ${report.changeQoQ >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                          {report.changeQoQ > 0 ? '+' : ''}{report.changeQoQ.toFixed(2)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* 业绩变动原因 */}
+                                  {report.changeReason && (
+                                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+                                      <span className="text-gray-500 dark:text-gray-400">原因: </span>
+                                      <span className="text-gray-700 dark:text-gray-300">{report.changeReason}</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>

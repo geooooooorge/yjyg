@@ -11,6 +11,12 @@ export interface EarningsReport {
   content: string;
   priceChange?: number; // 自报告日期至今的涨跌幅
   currentPrice?: number; // 当前价格
+  // 新增详细业绩数据
+  predictValue?: number; // 预测数值（元）
+  lastYearValue?: number; // 上年同期值（元）
+  changeYoY?: number; // 业绩变动同比（%）
+  changeQoQ?: number; // 业绩变动环比（%）
+  changeReason?: string; // 业绩变动原因
 }
 
 /**
@@ -27,7 +33,7 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
       pageSize: 500,
       pageNumber: 1,
       reportName: 'RPT_PUBLIC_OP_NEWPREDICT',
-      columns: 'SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,REPORT_DATE,PREDICT_TYPE,PREDICT_FINANCE_CODE,ADD_AMP_LOWER,ADD_AMP_UPPER,PREDICT_CONTENT,CHANGE_REASON_EXPLAIN',
+      columns: 'SECURITY_CODE,SECURITY_NAME_ABBR,NOTICE_DATE,REPORT_DATE,PREDICT_TYPE,PREDICT_FINANCE_CODE,ADD_AMP_LOWER,ADD_AMP_UPPER,PREDICT_CONTENT,CHANGE_REASON_EXPLAIN,PREDICT_AMT_UPPER,PREDICT_AMT_LOWER,LAST_YEAR_SAME_PERIOD,CHANGE_RATIO_YOY,CHANGE_RATIO_QOQ',
       // 筛选条件：预增类型 + 净利润指标
       filter: '(PREDICT_TYPE in ("预增","略增","续盈","扭亏")) and (PREDICT_FINANCE_CODE="004")',
       source: 'WEB',
@@ -50,6 +56,11 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
         const changeMin = parseFloat(item.ADD_AMP_LOWER) || 0;
         const changeMax = parseFloat(item.ADD_AMP_UPPER) || 0;
         
+        // 计算预测数值（取上下限的平均值）
+        const predictUpper = parseFloat(item.PREDICT_AMT_UPPER) || 0;
+        const predictLower = parseFloat(item.PREDICT_AMT_LOWER) || 0;
+        const predictValue = predictUpper && predictLower ? (predictUpper + predictLower) / 2 : (predictUpper || predictLower);
+        
         return {
           stockCode: item.SECURITY_CODE,
           stockName: item.SECURITY_NAME_ABBR,
@@ -59,6 +70,12 @@ export async function fetchEarningsReports(): Promise<EarningsReport[]> {
           changeMin: changeMin,
           changeMax: changeMax,
           content: item.PREDICT_CONTENT || item.CHANGE_REASON_EXPLAIN || '',
+          // 新增字段
+          predictValue: predictValue || undefined,
+          lastYearValue: parseFloat(item.LAST_YEAR_SAME_PERIOD) || undefined,
+          changeYoY: parseFloat(item.CHANGE_RATIO_YOY) || undefined,
+          changeQoQ: parseFloat(item.CHANGE_RATIO_QOQ) || undefined,
+          changeReason: item.CHANGE_REASON_EXPLAIN || undefined,
         };
       });
 

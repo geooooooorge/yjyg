@@ -14,6 +14,12 @@ interface Stock {
     reportDate: string;
     priceChange?: number;
     currentPrice?: number;
+    // 新增详细业绩数据
+    predictValue?: number;
+    lastYearValue?: number;
+    changeYoY?: number;
+    changeQoQ?: number;
+    changeReason?: string;
   }>;
 }
 

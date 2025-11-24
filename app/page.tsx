@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Plus, Trash2, RefreshCw, TrendingUp, Bell, Users } from 'lucide-react';
+import { Mail, Plus, Trash2, RefreshCw, TrendingUp, Bell, Users, ExternalLink, BarChart3 } from 'lucide-react';
 
 interface Stock {
   stockCode: string;
@@ -239,9 +239,31 @@ export default function Home() {
               业绩预增跟踪器
             </h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 px-4">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 px-4 mb-4">
             自动跟踪最新业绩预增股票，并发送邮件通知
           </p>
+          
+          {/* 导航按钮 */}
+          <div className="flex items-center justify-center gap-3 sm:gap-4">
+            <a
+              href="https://hundsun.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors text-sm font-medium shadow-md"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>Hundsun</span>
+            </a>
+            <a
+              href="https://etf-tracker.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium shadow-md"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>ETF Tracker</span>
+            </a>
+          </div>
         </div>
 
         {message && (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTodayNewStocks, getCachedStocks, getAllAiComments } from '@/lib/storage';
+import { getTodayNewStocks, getCachedStocks, getAllAiComments, getAllStocks, cacheStocks } from '@/lib/storage';
+import { fetchEarningsReports, getLatestReports } from '@/lib/eastmoney';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +15,39 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    // 1. 获取股票数据（优先今日新增，否则近7天）
+    // 1. 获取股票数据（优先今日新增，否则近7天，最后尝试历史数据）
     let stocks = await getTodayNewStocks();
     let stocksType = 'today';
     
     if (!stocks || stocks.length === 0) {
+      // 尝试获取缓存的近7天数据
       stocks = await getCachedStocks();
       stocksType = 'recent';
+      
+      if (!stocks || stocks.length === 0) {
+        // 缓存过期，尝试从永久存储获取历史数据
+        stocks = await getAllStocks();
+        stocksType = 'history';
+        
+        if (!stocks || stocks.length === 0) {
+          // 永久存储也没有，从 API 获取最近7天数据
+          console.log('No cached data, fetching from API...');
+          const reports = await fetchEarningsReports();
+          const latestStocks = getLatestReports(reports);
+          
+          stocks = Array.from(latestStocks.entries()).map(([code, reports]) => ({
+            stockCode: code,
+            stockName: reports[0].stockName,
+            reports: reports,
+          }));
+          
+          // 缓存结果
+          if (stocks.length > 0) {
+            await cacheStocks(stocks);
+          }
+          stocksType = 'api';
+        }
+      }
     }
 
     // 2. 获取 AI 评论

@@ -1,7 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Mail, Plus, Trash2, RefreshCw, TrendingUp, Bell, Users, ExternalLink, BarChart3 } from 'lucide-react';
+/**
+ * 业绩预增跟踪器 - 主页面
+ * 
+ * 设计原则应用:
+ * 1. 信息架构: 核心功能优先,渐进披露
+ * 2. 视觉层级: 60% 主色 / 30% 辅助色 / 10% 强调色
+ * 3. 交互设计: 完整状态覆盖,即时反馈
+ * 4. 性能优化: 骨架屏、乐观UI、懒加载
+ * 5. 可访问性: ARIA标签、键盘导航、色彩对比
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Mail, 
+  Plus, 
+  Trash2, 
+  RefreshCw, 
+  TrendingUp, 
+  Users, 
+  ExternalLink, 
+  BarChart3,
+  Sparkles,
+  AlertCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Card, CardHeader, CardContent } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { StockCardSkeleton } from '@/components/ui/Skeleton';
+
+// ==================== 类型定义 ====================
 
 interface Stock {
   stockCode: string;
@@ -14,7 +43,6 @@ interface Stock {
     reportDate: string;
     priceChange?: number;
     currentPrice?: number;
-    // 新增详细业绩数据
     predictValue?: number;
     lastYearValue?: number;
     changeYoY?: number;
@@ -23,40 +51,33 @@ interface Stock {
   }>;
 }
 
+interface AITestStatus {
+  status: 'idle' | 'testing' | 'success' | 'error';
+  message: string;
+  responseTime?: string;
+}
+
+// ==================== 主组件 ====================
+
 export default function Home() {
+  // 状态管理
   const [emails, setEmails] = useState<string[]>([]);
   const [newEmail, setNewEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
   const [userId] = useState(() => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [aiComments, setAiComments] = useState<Record<string, string>>({});
-  const [aiTestStatus, setAiTestStatus] = useState<{
-    status: 'testing' | 'success' | 'error' | 'idle';
-    message: string;
-    responseTime?: string;
-  }>({ status: 'idle', message: '' });
+  const [aiTestStatus, setAiTestStatus] = useState<AITestStatus>({ 
+    status: 'idle', 
+    message: '' 
+  });
 
-  useEffect(() => {
-    fetchEmails();
-    fetchStocks();
-    updateOnlineStatus();
-    testAiApi();
-    
-    // 定期发送心跳
-    const heartbeatInterval = setInterval(updateOnlineStatus, 15000); // 每15秒
-    
-    // 定期更新在线人数
-    const countInterval = setInterval(fetchOnlineCount, 10000); // 每10秒
-    
-    return () => {
-      clearInterval(heartbeatInterval);
-      clearInterval(countInterval);
-    };
-  }, [userId]);
+  // ==================== 数据获取 ====================
 
-  const updateOnlineStatus = async () => {
+  const updateOnlineStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/online', {
         method: 'POST',
@@ -70,9 +91,9 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to update online status:', error);
     }
-  };
+  }, [userId]);
 
-  const fetchOnlineCount = async () => {
+  const fetchOnlineCount = useCallback(async () => {
     try {
       const res = await fetch('/api/online');
       const data = await res.json();
@@ -82,9 +103,9 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to fetch online count:', error);
     }
-  };
+  }, []);
 
-  const fetchEmails = async () => {
+  const fetchEmails = useCallback(async () => {
     try {
       const res = await fetch('/api/emails');
       const data = await res.json();
@@ -94,20 +115,17 @@ export default function Home() {
     } catch (error) {
       console.error('Failed to fetch emails:', error);
     }
-  };
+  }, []);
 
-  const fetchStocks = async () => {
+  const fetchStocks = useCallback(async () => {
     setLoading(true);
     try {
-      // 先尝试获取今日新增
       const todayRes = await fetch('/api/earnings?type=today');
       const todayData = await todayRes.json();
       
       if (todayData.success && todayData.stocks && todayData.stocks.length > 0) {
-        // 如果有今日新增，显示今日新增
         setStocks(todayData.stocks);
       } else {
-        // 如果今日没有新增，显示近7天数据（不显示全部历史）
         const recentRes = await fetch('/api/earnings?type=recent');
         const recentData = await recentRes.json();
         if (recentData.success) {
@@ -116,13 +134,79 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Failed to fetch stocks:', error);
+      showMessage('error', '加载数据失败,请稍后重试');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchAiComments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ai-comments');
+      const data = await res.json();
+      
+      if (data.success && data.comments) {
+        const commentsByCode: Record<string, string> = {};
+        Object.entries(data.comments).forEach(([key, comment]) => {
+          const stockCode = key.split('_')[0];
+          commentsByCode[stockCode] = comment as string;
+        });
+        setAiComments(commentsByCode);
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI comments:', error);
+    }
+  }, []);
+
+  const testAiApi = useCallback(async () => {
+    setAiTestStatus({ status: 'testing', message: '测试 AI API 连接...' });
+    
+    try {
+      const res = await fetch('/api/test-ai');
+      const data = await res.json();
+      
+      if (data.success) {
+        setAiTestStatus({ 
+          status: 'success', 
+          message: `AI API 连接正常 (${data.responseTime})`,
+          responseTime: data.responseTime
+        });
+      } else {
+        setAiTestStatus({ 
+          status: 'error', 
+          message: data.error || 'AI API 测试失败'
+        });
+      }
+    } catch (error) {
+      setAiTestStatus({ 
+        status: 'error', 
+        message: '无法连接到 AI API'
+      });
+    }
+  }, []);
+
+  // ==================== 用户操作 ====================
+
+  const showMessage = (type: 'success' | 'error', text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const addEmail = async () => {
-    if (!newEmail) return;
+    if (!newEmail.trim()) {
+      setEmailError('请输入邮箱地址');
+      return;
+    }
+
+    if (!validateEmail(newEmail)) {
+      setEmailError('请输入有效的邮箱地址');
+      return;
+    }
 
     try {
       const res = await fetch('/api/emails', {
@@ -134,17 +218,16 @@ export default function Home() {
       const data = await res.json();
       
       if (data.success) {
-        setMessage('邮箱添加成功！');
+        showMessage('success', '邮箱添加成功!');
         setNewEmail('');
+        setEmailError('');
         fetchEmails();
       } else {
-        setMessage(data.error || '添加失败');
+        setEmailError(data.error || '添加失败');
       }
     } catch (error) {
-      setMessage('添加失败，请重试');
+      setEmailError('添加失败,请重试');
     }
-
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const removeEmail = async (email: string) => {
@@ -155,389 +238,405 @@ export default function Home() {
         body: JSON.stringify({ email }),
       });
       setEmails(emails.filter((e) => e !== email));
-      setMessage('邮箱已删除');
+      showMessage('success', '邮箱已删除');
     } catch (error) {
-      setMessage('删除失败，请重试');
-    }
-
-    setTimeout(() => setMessage(''), 3000);
-  };
-
-  // 从数据库加载所有 AI 点评
-  const fetchAiComments = async () => {
-    try {
-      const res = await fetch('/api/ai-comments');
-      const data = await res.json();
-      
-      if (data.success && data.comments) {
-        // 转换为 stockCode -> comment 的格式
-        const commentsByCode: Record<string, string> = {};
-        Object.entries(data.comments).forEach(([key, comment]) => {
-          // key 格式: stockCode_quarter
-          const stockCode = key.split('_')[0];
-          commentsByCode[stockCode] = comment as string;
-        });
-        setAiComments(commentsByCode);
-      }
-    } catch (error) {
-      console.error('Failed to fetch AI comments:', error);
+      showMessage('error', '删除失败,请重试');
     }
   };
 
-  // 当股票数据加载完成后，加载 AI 点评
+  // ==================== 生命周期 ====================
+
+  useEffect(() => {
+    fetchEmails();
+    fetchStocks();
+    updateOnlineStatus();
+    testAiApi();
+    
+    const heartbeatInterval = setInterval(updateOnlineStatus, 15000);
+    const countInterval = setInterval(fetchOnlineCount, 10000);
+    
+    return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(countInterval);
+    };
+  }, [fetchEmails, fetchStocks, updateOnlineStatus, testAiApi, fetchOnlineCount]);
+
   useEffect(() => {
     if (stocks.length > 0) {
       fetchAiComments();
     }
-  }, [stocks]);
+  }, [stocks, fetchAiComments]);
 
-  const testAiApi = async () => {
-    setAiTestStatus({ status: 'testing', message: '🔄 测试 AI API 连接...' });
+  // ==================== 渲染函数 ====================
+
+  const formatQuarter = (dateStr: string) => {
+    const parts = dateStr.split('-');
+    const year = parts[0];
+    const month = parseInt(parts[1]);
     
-    try {
-      const res = await fetch('/api/test-ai');
-      const data = await res.json();
-      
-      if (data.success) {
-        setAiTestStatus({ 
-          status: 'success', 
-          message: `${data.message} (${data.responseTime})`,
-          responseTime: data.responseTime
-        });
-      } else {
-        setAiTestStatus({ 
-          status: 'error', 
-          message: data.error || '❌ AI API 测试失败'
-        });
-      }
-    } catch (error) {
-      setAiTestStatus({ 
-        status: 'error', 
-        message: '❌ 无法连接到 AI API'
-      });
-    }
+    let quarter = 1;
+    if (month === 3) quarter = 1;
+    else if (month === 6) quarter = 2;
+    else if (month === 9) quarter = 3;
+    else if (month === 12) quarter = 4;
+    
+    return `${year}年${quarter}季度业绩预增`;
   };
 
+  const groupStocksByQuarter = () => {
+    const grouped = stocks.reduce((acc, stock) => {
+      const quarter = stock.reports[0].quarter;
+      if (!acc[quarter]) {
+        acc[quarter] = [];
+      }
+      acc[quarter].push(stock);
+      return acc;
+    }, {} as Record<string, Stock[]>);
+
+    return Object.keys(grouped)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+      .map(quarter => ({ quarter, stocks: grouped[quarter] }));
+  };
+
+  // ==================== 主渲染 ====================
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-6xl">
-        {/* 在线人数显示 */}
-        <div className="fixed top-4 right-4 z-50">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700">
-            <Users className="w-4 h-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {onlineCount}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">在线</span>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-neutral-50 dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-800">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
+        
+        {/* 在线人数指示器 - 右上角固定 */}
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <Badge variant="success" size="md" className="shadow-lg">
+            <Users className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="font-semibold">{onlineCount}</span>
+            <span className="text-xs">在线</span>
+          </Badge>
         </div>
 
-        <div className="text-center mb-6 sm:mb-12">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-indigo-600" />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
+        {/* 页头 - 信息架构: 核心功能优先 */}
+        <header className="text-center mb-8 sm:mb-12 animate-slide-down">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+              <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-primary-600 dark:text-primary-400" aria-hidden="true" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-neutral-900 dark:text-white">
               业绩预增跟踪器
             </h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 px-4 mb-4">
-            自动跟踪最新业绩预增股票，并发送邮件通知
+          <p className="text-base sm:text-lg text-neutral-600 dark:text-neutral-300 mb-6 max-w-2xl mx-auto">
+            自动跟踪最新业绩预增股票,AI 智能分析,实时邮件通知
           </p>
           
-          {/* 导航按钮 */}
-          <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <a
+          {/* 导航链接 */}
+          <nav className="flex items-center justify-center gap-3 sm:gap-4" aria-label="外部链接">
+            <Button
               href="https://hundsun.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:bg-indigo-800 transition-colors text-sm font-medium shadow-md"
+              variant="primary"
+              size="md"
+              icon={ExternalLink}
             >
-              <ExternalLink className="w-4 h-4" />
-              <span>Hundsun</span>
-            </a>
-            <a
+              Hundsun
+            </Button>
+            <Button
               href="https://etf-tracker.vercel.app"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors text-sm font-medium shadow-md"
+              variant="secondary"
+              size="md"
+              icon={BarChart3}
             >
-              <BarChart3 className="w-4 h-4" />
-              <span>ETF Tracker</span>
-            </a>
-          </div>
-        </div>
+              ETF Tracker
+            </Button>
+          </nav>
+        </header>
 
+        {/* 全局消息提示 - 反馈类动效 */}
         {message && (
-          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 rounded-lg text-center text-sm sm:text-base">
-            {message}
+          <div 
+            className={`mb-6 p-4 rounded-lg animate-slide-down ${
+              message.type === 'success' 
+                ? 'bg-success-50 text-success-800 border border-success-200 dark:bg-success-900/20 dark:text-success-300 dark:border-success-800' 
+                : 'bg-error-50 text-error-800 border border-error-200 dark:bg-error-900/20 dark:text-error-300 dark:border-error-800'
+            }`}
+            role="alert"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+              <span className="font-medium">{message.text}</span>
+            </div>
           </div>
         )}
 
-        {/* 简化的邮箱订阅模块 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Mail className="w-4 h-4 text-indigo-600" />
-            <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-white">
-              邮件订阅
-            </h2>
-            {emails.length > 0 && (
-              <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-xs">
-                {emails.length}
-              </span>
-            )}
-          </div>
-
-          <div className="flex gap-2 mb-2">
-            <input
-              type="email"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addEmail()}
-              placeholder="输入邮箱"
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-            <button
-              onClick={addEmail}
-              className="px-3 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors text-sm"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-
-          {emails.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {emails.map((email) => (
-                <div
-                  key={email}
-                  className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs group"
-                >
-                  <span className="text-gray-700 dark:text-gray-200">{email}</span>
-                  <button
-                    onClick={() => removeEmail(email)}
-                    className="text-red-600 hover:text-red-700 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
+        {/* AI API 状态 - 系统状态反馈 */}
+        <Card className="mb-6 animate-fade-in">
+          <div className={`flex items-center justify-between p-3 sm:p-4 rounded-lg ${
+            aiTestStatus.status === 'success' 
+              ? 'bg-success-50 dark:bg-success-900/20' 
+              : aiTestStatus.status === 'error'
+              ? 'bg-error-50 dark:bg-error-900/20'
+              : 'bg-primary-50 dark:bg-primary-900/20'
+          }`}>
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-4 h-4 ${
+                aiTestStatus.status === 'success' ? 'text-success-600' :
+                aiTestStatus.status === 'error' ? 'text-error-600' :
+                'text-primary-600 animate-pulse'
+              }`} aria-hidden="true" />
+              <span className="text-sm font-medium">{aiTestStatus.message}</span>
             </div>
-          )}
-        </div>
-
-        {/* AI API 测试状态 */}
-        <div className={`mb-4 sm:mb-6 p-2 sm:p-3 rounded-lg text-xs sm:text-sm ${
-          aiTestStatus.status === 'success' 
-            ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800' 
-            : aiTestStatus.status === 'error'
-            ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-        }`}>
-          <div className="flex items-center justify-between">
-            <span>{aiTestStatus.message}</span>
             {aiTestStatus.status !== 'testing' && (
-              <button
+              <Button
                 onClick={testAiApi}
-                className="text-xs underline hover:no-underline"
+                variant="ghost"
+                size="sm"
+                aria-label="重新测试AI API"
               >
                 重新测试
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 dark:text-white">
-                  今日新增
-                </h2>
-              </div>
-              <button
-                onClick={fetchStocks}
-                disabled={loading}
-                className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors active:bg-indigo-100"
+        {/* 邮件订阅模块 - 渐进披露 */}
+        <Card className="mb-6 animate-slide-up" padding="md">
+          <CardHeader
+            title="邮件订阅"
+            subtitle="订阅后将自动接收业绩预增通知"
+            icon={<Mail className="w-5 h-5 text-primary-600" />}
+            action={
+              emails.length > 0 && (
+                <Badge variant="info" size="md">
+                  {emails.length} 个订阅
+                </Badge>
+              )
+            }
+          />
+
+          <CardContent>
+            <div className="flex gap-2 mb-4">
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => {
+                  setNewEmail(e.target.value);
+                  setEmailError('');
+                }}
+                onKeyPress={(e) => e.key === 'Enter' && addEmail()}
+                placeholder="输入邮箱地址"
+                error={emailError}
+                fullWidth
+                aria-label="邮箱地址"
+              />
+              <Button
+                onClick={addEmail}
+                variant="primary"
+                icon={Plus}
+                aria-label="添加邮箱"
               >
-                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
+                添加
+              </Button>
             </div>
 
-            <div className="space-y-3 sm:space-y-4 max-h-96 overflow-y-auto">
+            {emails.length > 0 && (
+              <div className="flex flex-wrap gap-2" role="list" aria-label="已订阅邮箱列表">
+                {emails.map((email) => (
+                  <div
+                    key={email}
+                    className="group flex items-center gap-2 px-3 py-1.5 bg-neutral-100 dark:bg-neutral-700 rounded-lg text-sm transition-colors hover:bg-neutral-200 dark:hover:bg-neutral-600"
+                    role="listitem"
+                  >
+                    <span className="text-neutral-700 dark:text-neutral-200">{email}</span>
+                    <button
+                      onClick={() => removeEmail(email)}
+                      className="text-error-600 hover:text-error-700 dark:text-error-400 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+                      aria-label={`删除邮箱 ${email}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 股票列表 - 核心内容区域 */}
+        <Card padding="lg" className="animate-slide-up">
+          <CardHeader
+            title="今日新增"
+            subtitle={`数据来源：东方财富 | 每5分钟自动更新`}
+            icon={<TrendingUp className="w-6 h-6 text-success-600" />}
+            action={
+              <Button
+                onClick={fetchStocks}
+                loading={loading}
+                variant="ghost"
+                size="sm"
+                icon={RefreshCw}
+                aria-label="刷新数据"
+              >
+                刷新
+              </Button>
+            }
+          />
+
+          <CardContent>
+            <div className="space-y-6 max-h-[600px] overflow-y-auto scrollbar-thin">
+              {/* 加载状态 - 骨架屏 */}
               {loading ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-6 sm:py-8 text-sm sm:text-base">
-                  加载中...
-                </p>
+                <div className="space-y-4" aria-live="polite" aria-busy="true">
+                  <StockCardSkeleton />
+                  <StockCardSkeleton />
+                  <StockCardSkeleton />
+                </div>
               ) : stocks.length === 0 ? (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-6 sm:py-8 text-sm sm:text-base">
-                  暂无新增业绩预增公告
-                </p>
+                /* 空状态 */
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-4">
+                    <TrendingUp className="w-8 h-8 text-neutral-400" aria-hidden="true" />
+                  </div>
+                  <p className="text-neutral-500 dark:text-neutral-400 text-lg">
+                    暂无新增业绩预增公告
+                  </p>
+                </div>
               ) : (
-                (() => {
-                  // 按季度分组
-                  const groupedByQuarter = stocks.reduce((acc, stock) => {
-                    const quarter = stock.reports[0].quarter;
-                    if (!acc[quarter]) {
-                      acc[quarter] = [];
-                    }
-                    acc[quarter].push(stock);
-                    return acc;
-                  }, {} as Record<string, typeof stocks>);
-
-                  // 按季度排序（从新到旧）
-                  const sortedQuarters = Object.keys(groupedByQuarter).sort((a, b) => 
-                    new Date(b).getTime() - new Date(a).getTime()
-                  );
-
-                  // 格式化季度显示
-                  const formatQuarter = (dateStr: string) => {
-                    // dateStr 格式: 2025-09-30 或 2025-12-31
-                    const parts = dateStr.split('-');
-                    const year = parts[0];
-                    const month = parseInt(parts[1]);
-                    
-                    // 根据月份判断季度
-                    let quarter = 1;
-                    if (month === 3) quarter = 1;      // 一季度：3月31日
-                    else if (month === 6) quarter = 2;  // 二季度：6月30日
-                    else if (month === 9) quarter = 3;  // 三季度：9月30日
-                    else if (month === 12) quarter = 4; // 四季度：12月31日
-                    
-                    return `${year}年${quarter}季度业绩预增（近7天）`;
-                  };
-
-                  return sortedQuarters.map((quarter) => (
-                    <div key={quarter} className="space-y-2">
-                      <h3 className="text-xs sm:text-sm font-semibold text-indigo-600 dark:text-indigo-400 sticky top-0 bg-white dark:bg-gray-800 py-2 border-b border-gray-200 dark:border-gray-700">
-                        {formatQuarter(quarter)} ({groupedByQuarter[quarter].length}只)
-                      </h3>
-                      <div className="space-y-2">
-                        {groupedByQuarter[quarter].map((stock) => {
-                          const report = stock.reports[0];
-                          // 构建东方财富公告链接
-                          const announcementUrl = `http://data.eastmoney.com/notices/detail/${stock.stockCode}/.html`;
-                          
-                          return (
-                            <div
-                              key={stock.stockCode}
-                              className="p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
-                            >
-                              {/* AI 评分 - 主要信息 */}
-                              <div className="mb-3">
-                                {aiComments[stock.stockCode] ? (
-                                  <div className="p-3 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-sm font-bold text-purple-600 dark:text-purple-400 flex-shrink-0">🤖 AI:</span>
-                                      <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-medium">
-                                        {aiComments[stock.stockCode]}
-                                      </p>
-                                    </div>
+                /* 股票列表 - 按季度分组 */
+                groupStocksByQuarter().map(({ quarter, stocks: quarterStocks }) => (
+                  <section key={quarter} className="space-y-3">
+                    <h3 className="sticky top-0 z-10 text-sm font-semibold text-primary-600 dark:text-primary-400 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm py-2 px-3 rounded-lg border border-primary-200 dark:border-primary-800">
+                      {formatQuarter(quarter)} ({quarterStocks.length}只)
+                    </h3>
+                    <div className="space-y-3">
+                      {quarterStocks.map((stock) => {
+                        const report = stock.reports[0];
+                        const announcementUrl = `http://data.eastmoney.com/notices/detail/${stock.stockCode}/.html`;
+                        
+                        return (
+                          <article
+                            key={stock.stockCode}
+                            className="p-4 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-250"
+                          >
+                            {/* AI 评分区域 */}
+                            {aiComments[stock.stockCode] && (
+                              <div className="mb-3 p-3 bg-gradient-to-r from-primary-50 to-purple-50 dark:from-primary-900/20 dark:to-purple-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+                                <div className="flex items-start gap-2">
+                                  <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                                  <div>
+                                    <span className="text-xs font-semibold text-primary-700 dark:text-primary-300 uppercase tracking-wide">AI 分析</span>
+                                    <p className="text-sm text-neutral-800 dark:text-neutral-200 leading-relaxed mt-1">
+                                      {aiComments[stock.stockCode]}
+                                    </p>
                                   </div>
-                                ) : (
-                                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">暂无 AI 评分</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* 股票基本信息 */}
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-base text-gray-800 dark:text-white">
-                                      {stock.stockName}
-                                    </span>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">
-                                      {stock.stockCode}
-                                    </span>
-                                  </div>
-                                  <a
-                                    href={announcementUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0"
-                                  >
-                                    查看详情 →
-                                  </a>
                                 </div>
-                                
-                                <div className="space-y-1.5">
-                                  <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-                                    <span className="flex items-center gap-1">
-                                      <span className="font-medium text-green-600 dark:text-green-400">
-                                        {report.forecastType}
+                              </div>
+                            )}
+
+                            {/* 股票基本信息 */}
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <h4 className="font-semibold text-lg text-neutral-900 dark:text-white truncate">
+                                    {stock.stockName}
+                                  </h4>
+                                  <Badge variant="default" size="sm">
+                                    {stock.stockCode}
+                                  </Badge>
+                                </div>
+                                <a
+                                  href={announcementUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline flex-shrink-0"
+                                >
+                                  查看详情
+                                  <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                                </a>
+                              </div>
+                              
+                              <div className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-400">
+                                <Badge variant="success" size="sm">
+                                  {report.forecastType}
+                                </Badge>
+                                <span className="font-medium">
+                                  {report.changeMin}% ~ {report.changeMax}%
+                                </span>
+                                <span className="text-neutral-400">|</span>
+                                <span>公告：{report.reportDate}</span>
+                              </div>
+                              
+                              {/* 详细业绩数据 */}
+                              {(report.predictValue || report.lastYearValue || report.changeYoY !== undefined || report.changeQoQ !== undefined) && (
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                  {report.predictValue && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-neutral-500 dark:text-neutral-400">预测值:</span>
+                                      <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                                        {(report.predictValue / 100000000).toFixed(2)}亿
                                       </span>
-                                      <span>{report.changeMin}%~{report.changeMax}%</span>
-                                    </span>
-                                    <span className="text-gray-400">|</span>
-                                    <span>公告：{report.reportDate}</span>
-                                  </div>
-                                  
-                                  {/* 详细业绩数据 */}
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    {report.predictValue && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-500 dark:text-gray-400">预测值:</span>
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                                          {(report.predictValue / 100000000).toFixed(2)}亿
-                                        </span>
-                                      </div>
-                                    )}
-                                    {report.lastYearValue && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-500 dark:text-gray-400">去年同期:</span>
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                                          {(report.lastYearValue / 100000000).toFixed(2)}亿
-                                        </span>
-                                      </div>
-                                    )}
-                                    {report.changeYoY !== undefined && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-500 dark:text-gray-400">同比:</span>
-                                        <span className={`font-medium ${report.changeYoY >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                          {report.changeYoY > 0 ? '+' : ''}{report.changeYoY.toFixed(2)}%
-                                        </span>
-                                      </div>
-                                    )}
-                                    {report.changeQoQ !== undefined && (
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-gray-500 dark:text-gray-400">环比:</span>
-                                        <span className={`font-medium ${report.changeQoQ >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                          {report.changeQoQ > 0 ? '+' : ''}{report.changeQoQ.toFixed(2)}%
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* 业绩变动原因 */}
-                                  {report.changeReason && (
-                                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
-                                      <span className="text-gray-500 dark:text-gray-400">原因: </span>
-                                      <span className="text-gray-700 dark:text-gray-300">{report.changeReason}</span>
+                                    </div>
+                                  )}
+                                  {report.lastYearValue && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-neutral-500 dark:text-neutral-400">去年同期:</span>
+                                      <span className="font-medium text-neutral-700 dark:text-neutral-300">
+                                        {(report.lastYearValue / 100000000).toFixed(2)}亿
+                                      </span>
+                                    </div>
+                                  )}
+                                  {report.changeYoY !== undefined && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-neutral-500 dark:text-neutral-400">同比:</span>
+                                      <span className={`font-medium ${report.changeYoY >= 0 ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'}`}>
+                                        {report.changeYoY > 0 ? '+' : ''}{report.changeYoY.toFixed(2)}%
+                                      </span>
+                                    </div>
+                                  )}
+                                  {report.changeQoQ !== undefined && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-neutral-500 dark:text-neutral-400">环比:</span>
+                                      <span className={`font-medium ${report.changeQoQ >= 0 ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'}`}>
+                                        {report.changeQoQ > 0 ? '+' : ''}{report.changeQoQ.toFixed(2)}%
+                                      </span>
                                     </div>
                                   )}
                                 </div>
-                              </div>
+                              )}
+                              
+                              {/* 业绩变动原因 */}
+                              {report.changeReason && (
+                                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg text-sm">
+                                  <span className="font-medium text-neutral-700 dark:text-neutral-300">原因: </span>
+                                  <span className="text-neutral-600 dark:text-neutral-400">{report.changeReason}</span>
+                                </div>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
+                          </article>
+                        );
+                      })}
                     </div>
-                  ));
-                })()
+                  </section>
+                ))
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="text-center text-gray-600 dark:text-gray-400 text-xs sm:text-sm pb-4">
-          <p className="mb-3 sm:mb-4">数据来源：东方财富 | 每5分钟自动更新</p>
-          <a
+        {/* 页脚 */}
+        <footer className="text-center mt-8 pb-4 space-y-4">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            © 2024 业绩预增跟踪器 · 数据来源：东方财富
+          </p>
+          <Button
             href="/admin"
-            className="inline-block px-4 py-2 sm:px-5 sm:py-2.5 bg-slate-600 text-white rounded-lg hover:bg-slate-700 active:bg-slate-800 transition-colors text-sm font-medium"
+            variant="secondary"
+            size="md"
           >
             数据库管理
-          </a>
-        </div>
+          </Button>
+        </footer>
       </div>
     </div>
   );
